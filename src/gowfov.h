@@ -98,7 +98,9 @@ void ScreenshotFrame(IDXGISwapChain* swap, bool keyPressed);
 void ScreenshotScene(IDXGISwapChain* swap);
 
 // fov.cpp
-// 0 means "game default" (no override); otherwise horizontal FOV in degrees.
+// 0 means "game default" (no override); otherwise horizontal FOV in degrees, at most kFovMax.
+// The single rendered view limits the lens to about 160 degrees, so wider settings add nothing.
+static const float kFovMax = 159.f;  // highest FOV the mod sets or hands to the engine
 void FovInit();
 void FovInstall();  // detours the engine's FOV function; call once the engine is loaded
 float FovGet();

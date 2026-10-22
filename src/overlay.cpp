@@ -8,7 +8,7 @@
 #include "overlay_ps.h"
 
 static const int kMinFov = 60;
-static const int kMaxFov = 180;
+static const int kMaxFov = (int)kFovMax;
 static const int kToggleKey = VK_F8;
 static const int kScreenshotKey = VK_F9;
 

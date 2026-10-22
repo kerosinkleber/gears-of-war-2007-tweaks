@@ -2,7 +2,7 @@
 
 A mod for **Gears of War for Windows** (PC, 2007) that adds:
 
-- **FOV slider** (60–180°). Aiming keeps the game's own zoom.
+- **FOV slider** (60–159°). Aiming keeps the game's own zoom.
 - **Lens correction** in the style of [flex-fov](https://github.com/shaunlebron/flex-fov): very wide FOVs without stretched edges (Panini or stereographic projection).
 - **Shoulder swap** on Tab, with a setting for the shoulder the camera starts on.
 - **Supersampling** up to 8× (renders at a higher resolution and averages it down). The HUD, menus and subtitles keep their normal size, and it can be changed while playing.
@@ -44,7 +44,7 @@ Settings are saved to `gowfov.ini` next to the DLL the first time one is changed
 
 | Key | Values | Default |
 |---|---|---|
-| `fov` | `0` = game default, otherwise 60–180. This is the FOV of the normal camera (the game uses 80); wider camera modes get the same increase, and aiming (≤ 50°) is left alone. | `0` |
+| `fov` | `0` = game default, otherwise 60–159. This is the FOV of the normal camera (the game uses 80); wider camera modes get the same increase up to 159°, and aiming (≤ 50°) is left alone. | `0` |
 | `lens` | `0` off, `1` auto (rectilinear up to 90°, blending into Panini by 160°), `2` Panini, `3` stereographic | `1` |
 | `supersample` | Pixel-count multiplier, 1–9 (`4` = twice the width and height). Fullscreen only. | `1` |
 | `shoulder` | `right` or `left`: the shoulder the camera starts on | `right` |
@@ -53,7 +53,7 @@ Settings are saved to `gowfov.ini` next to the DLL the first time one is changed
 
 Notes:
 
-- The game renders one view, so the lens is limited to about 160° (Panini) or 147° (stereographic). A higher FOV setting is capped there, and camera modes that are wider than normal (such as the roadie run) can then not widen any further.
+- The FOV is capped at 159°: the game renders one view, so the lens can't go much wider anyway (about 160° with Panini, 147° with stereographic, where a higher setting is capped at 147°). Near the cap, camera modes that are normally wider (such as the roadie run) can't widen any further.
 - Supersampling is demanding: 8× renders eight times as many pixels. Lower it if the frame rate drops.
 
 ## How it works

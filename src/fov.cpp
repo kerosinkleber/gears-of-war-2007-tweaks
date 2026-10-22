@@ -12,7 +12,6 @@ static volatile float g_fov;  // slider value; 0 = no override
 static const DWORD kTargetVA = 0x00EFB860;
 static const BYTE kExpected[7] = {0x83, 0xEC, 0x10, 0x8B, 0x44, 0x24, 0x18};  // sub esp,10h; mov eax,[esp+18h]
 static const float kBaseFov = 80.f;   // game default for the normal camera
-static const float kMaxResult = 179.f;
 
 typedef float (__stdcall* AdjustFn)(float fov, void* pawn);
 static AdjustFn g_orig;
@@ -32,7 +31,7 @@ static float Remap(float fov)
     float s = g_fov;
     if (s <= 0) return fov;
     float out = fov + SmoothStep((fov - 50.f) / 30.f) * (s - kBaseFov);
-    if (out > kMaxResult) out = kMaxResult;
+    if (out > kFovMax) out = kFovMax;
     if (out < 10.f) out = 10.f;
     return out;
 }
@@ -65,6 +64,7 @@ void FovInit()
     char path[MAX_PATH];
     IniPath(path);
     g_fov = (float)GetPrivateProfileIntA("gowfov", "fov", 0, path);
+    if (g_fov > kFovMax) g_fov = kFovMax;
     Log("FovInit fov=%d", (int)g_fov);
 }
 
@@ -77,6 +77,7 @@ float FovGet() { return g_fov; }
 
 void FovSet(float degrees)
 {
+    if (degrees > kFovMax) degrees = kFovMax;
     g_fov = degrees;
     char path[MAX_PATH], val[16];
     IniPath(path);

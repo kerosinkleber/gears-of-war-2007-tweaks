@@ -1,4 +1,4 @@
-# gowfov
+# Gears of War (2007) Tweaks
 
 A mod for **Gears of War for Windows** (PC, 2007) that adds:
 
@@ -9,7 +9,7 @@ A mod for **Gears of War for Windows** (PC, 2007) that adds:
 - **Intro skip**: no ESRB, Epic and Microsoft Game Studios videos at startup. Loading screens still play.
 - An in-game **settings menu** (F8) and **screenshots** (F9).
 
-It is a single `d3d9.dll` that goes next to the game's executable. No game files are modified.
+It is a single `d3d9.dll` that goes next to the game's executable. No game files are modified. Its own files keep the mod's original name, gowfov (`gowfov.ini`, `gowfov.log`).
 
 ## Requirements
 
@@ -23,7 +23,7 @@ It is a single `d3d9.dll` that goes next to the game's executable. No game files
 
 ## Installing
 
-1. Download `d3d9.dll` from the releases, or build it yourself (see below).
+1. Download `d3d9.dll` from the [releases](https://github.com/kerosinkleber/gears-of-war-2007-tweaks/releases), or build it yourself (see below).
 2. Copy it into the game's `Binaries` folder, next to `WarGame-G4WLive.exe`.
 3. Start the game as usual through `Startup.exe`.
 

@@ -1,0 +1,17 @@
+# Build output (DLL, objects, compiled shader headers, harness)
+out/
+
+# Files the mod writes next to itself when run from this folder
+gowfov.ini
+gowfov.log
+gowfov_*.bmp
+gowfov_state.txt
+gowfov_state.tmp
+gowfov_cmd.txt
+gowfov_fovtrace.csv
+*.req
+
+# Editor and Visual Studio files
+.vs/
+*.user
+*.suo

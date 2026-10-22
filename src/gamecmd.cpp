@@ -145,6 +145,9 @@ static void WriteState()
     fprintf(f, "frame=%lu\n", g_frames);
     fprintf(f, "gameplay_camera=%d\n", LensGameplayActive() ? 1 : 0);
     fprintf(f, "lens_mode=%d\nlens_fov=%.1f\nfov_setting=%.0f\n", LensGetMode(), LensEffectiveFov(), FovGet());
+    RECT clip;
+    GetClipCursor(&clip);
+    fprintf(f, "mousetrap=%d clip=%ld %ld %ld %ld\n", MouseTrapGetMode(), clip.left, clip.top, clip.right, clip.bottom);
     fprintf(f, "supersample=%s %ux%u -> %ux%u\n", ss ? "on" : "off", vw, vh, nw, nh);
     TextCaptureWrite(f);
     fclose(f);

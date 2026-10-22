@@ -31,6 +31,7 @@ static LONG CALLBACK CrashHandler(EXCEPTION_POINTERS* ep)
         if (InExeCode(v)) { Log("  stack+%04x: %08lx (exe)", i * 4, v); ++found; }
         else if (InSelf(v)) { Log("  stack+%04x: %08lx (gowfov+%lx)", i * 4, v, v - (DWORD)g_selfBase); ++found; }
     }
+    ClipCursor(nullptr);  // never leave the cursor confined to a game that is going down
     return EXCEPTION_CONTINUE_SEARCH;
 }
 

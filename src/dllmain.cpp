@@ -108,10 +108,12 @@ BOOL WINAPI DllMain(HINSTANCE inst, DWORD reason, LPVOID)
         FovInit();
         LensInit();
         SupersampleInit();
+        MouseTrapInit();
         BackgroundInit();
         BackgroundInstall();
         TextCaptureInstall();
         IntrosInstall();
+        MouseTrapInstall();
         // The viewport and DXGI factory are set up before the engine's first Direct3DCreate9
         // call, so these hooks go in now (the exe's imports are already bound here).
         SupersampleEarlyInstall();

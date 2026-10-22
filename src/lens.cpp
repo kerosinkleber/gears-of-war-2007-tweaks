@@ -552,6 +552,7 @@ void LensOnPresent(IDXGISwapChain* swap)
             DeleteFileA(req);
             FovInit();
             LensInit();
+            MouseTrapInit();
             Log("settings reloaded: lens=%d", (int)g_mode);
         }
     }

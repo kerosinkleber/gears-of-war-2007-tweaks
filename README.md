@@ -6,6 +6,7 @@ A mod for **Gears of War for Windows** (PC, 2007) that adds:
 - **Lens correction** in the style of [flex-fov](https://github.com/shaunlebron/flex-fov): very wide FOVs without stretched edges (Panini or stereographic projection).
 - **Shoulder swap** on Tab, with a setting for the shoulder the camera starts on.
 - **Supersampling** up to 8× (renders at a higher resolution and averages it down). The HUD, menus and subtitles keep their normal size, and it can be changed while playing.
+- **Mouse trap**: keeps the cursor on the game's monitor, during gameplay only or in menus too, so it can't drift onto another screen.
 - **Intro skip**: no ESRB, Epic and Microsoft Game Studios videos at startup. Loading screens still play.
 - An in-game **settings menu** (F8) and **screenshots** (F9).
 
@@ -48,6 +49,7 @@ Settings are saved to `gowfov.ini` next to the DLL the first time one is changed
 | `lens` | `0` off, `1` auto (rectilinear up to 90°, blending into Panini by 160°), `2` Panini, `3` stereographic | `1` |
 | `supersample` | Pixel-count multiplier, 1–9 (`4` = twice the width and height). Fullscreen only. | `1` |
 | `shoulder` | `right` or `left`: the shoulder the camera starts on | `right` |
+| `mousetrap` | `0` off (the game's own behaviour), `1` keep the cursor on the game's monitor during gameplay and free it in menus, pause, loading screens and cutscenes, `2` keep it there in menus too. Only while the game is in front; switching to another program frees the cursor. | `0` |
 | `skipintros` | `1` skip the intro videos, `0` play them (applies at the next start) | `1` |
 | `background` | Developer tool, see below. Leave at `0`. | `0` |
 
@@ -77,6 +79,7 @@ The game imports `d3d9.dll` even when it renders with DirectX 10, so a proxy DLL
 | `src/fov.cpp` | FOV hook and setting |
 | `src/lens.cpp`, `src/lens.hlsl` | Lens projection math, warp pass, scene command hooks |
 | `src/shoulder.cpp` | Shoulder swap |
+| `src/mousetrap.cpp` | Mouse trap |
 | `src/supersample.cpp`, `src/downscale.hlsl` | Supersampling |
 | `src/overlay.cpp`, `src/overlay.hlsl` | F8 settings menu |
 | `src/intros.cpp` | Intro skip |

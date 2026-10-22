@@ -52,6 +52,14 @@ void ShoulderUpdate(bool focused);
 bool ShoulderStartLeft();
 void ShoulderSetStartLeft(bool left);  // saves; also switches the camera now
 
+// mousetrap.cpp: keeps the cursor on the game's monitor while the game is in front.
+enum { kMouseTrapOff = 0, kMouseTrapGameplay = 1, kMouseTrapAlways = 2, kMouseTrapModeCount = 3 };
+void MouseTrapInit();               // reads gowfov.ini
+void MouseTrapInstall();            // ClipCursor import
+void MouseTrapFrame(HWND window);   // from Present
+int MouseTrapGetMode();
+void MouseTrapSetMode(int mode);    // saves to gowfov.ini
+
 // dx10hook.cpp: hooks IDXGISwapChain (the game renders with D3D10).
 void Dx10HookInstall();
 void Dx10HookPatchSwapChain(IDXGISwapChain* swap);  // patches the vtable shared by this swap chain class

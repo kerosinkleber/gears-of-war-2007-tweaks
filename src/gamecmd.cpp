@@ -8,6 +8,8 @@
 //                     mouse <x> <y>, lmb down|up   move the (tool) cursor in client pixels, left button
 //                     ss <factor>       set supersampling (saved, applied right away)
 //                     usershot          take a screenshot as the screenshot key does
+//                     menu <action>     the F8 menu: open, close, up, down, left, right, left10,
+//                                       right10, home (rowe_ui.req captures it)
 //  rowe_state.txt rewritten twice a second: frame count, whether the gameplay camera is
 //                   active, lens and supersampling state, and the text drawn last frame.
 #include <windows.h>
@@ -135,6 +137,7 @@ static void RunCommands()
             if (sscanf(arg, "%d %d", &x, &y) == 2) PostMouseMove(x, y);
         }
         else if (lstrcmpiA(cmd, "usershot") == 0) ScreenshotRequestUser();
+        else if (lstrcmpiA(cmd, "menu") == 0 && arg && OverlayCommand(arg)) Log("cmd: menu %s", arg);
         else if (lstrcmpiA(cmd, "ss") == 0 && arg) { SupersampleSetFactor((float)atof(arg)); Log("cmd: ss %s", arg); }
         else Log("cmd: unknown command '%s'", cmd);
     }

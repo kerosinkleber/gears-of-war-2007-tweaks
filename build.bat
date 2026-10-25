@@ -27,8 +27,9 @@ fxc /nologo /T ps_4_0 /E PSMain /Vn g_lensPS /Fh "%OUT%\lens_ps.h" "%SRC%\lens.h
 fxc /nologo /T vs_4_0 /E VSMain /Vn g_downscaleVS /Fh "%OUT%\downscale_vs.h" "%SRC%\downscale.hlsl" >nul || exit /b 1
 fxc /nologo /T ps_4_0 /E PSMain /Vn g_downscalePS /Fh "%OUT%\downscale_ps.h" "%SRC%\downscale.hlsl" >nul || exit /b 1
 
-rem /MT links the C runtime statically, so the DLL needs no Visual C++ redistributable.
-cl /nologo /O2 /MT /EHsc /W3 /D_CRT_SECURE_NO_WARNINGS /LD /I"%OUT%" /Fo"%OUT%\\" /Fe"%OUT%\d3d9.dll" ^
+rem /MT links the C runtime statically, so the DLL needs no Visual C++ redistributable. The F8 menu
+rem uses stb_truetype from third_party\imgui and the font from third_party\fonts.
+cl /nologo /O2 /MT /EHsc /W3 /D_CRT_SECURE_NO_WARNINGS /LD /I"%OUT%" /I"%~dp0third_party\imgui" /I"%~dp0third_party\fonts" /Fo"%OUT%\\" /Fe"%OUT%\d3d9.dll" ^
   "%SRC%\dllmain.cpp" "%SRC%\detour.cpp" "%SRC%\crashlog.cpp" "%SRC%\dx10hook.cpp" "%SRC%\fov.cpp" ^
   "%SRC%\lens.cpp" "%SRC%\shoulder.cpp" "%SRC%\supersample.cpp" "%SRC%\overlay.cpp" "%SRC%\intros.cpp" ^
   "%SRC%\screenshot.cpp" "%SRC%\mousetrap.cpp" "%SRC%\launch.cpp" "%SRC%\background.cpp" "%SRC%\gamecmd.cpp" "%SRC%\textcapture.cpp" "%SRC%\fovtrace.cpp" ^

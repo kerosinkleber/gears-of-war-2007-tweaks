@@ -2,9 +2,13 @@
 // keyboard messages while its window is not in focus, so tools can drive it without stealing
 // the user's focus. Off by default; normal alt-tab pausing is unchanged unless enabled.
 //
-// The engine pauses when it sees its window deactivate and checks GetFocus/GetActiveWindow,
-// so in background mode those imports answer with the game window and the deactivate
-// messages are not passed on to the engine's window procedure.
+// The engine pauses when it sees its window deactivate and checks GetFocus/GetActiveWindow
+// (and, in a window, GetForegroundWindow), so in background mode those imports answer with the
+// game window and the deactivate messages are not passed on to the engine's window procedure.
+//
+// When the game window first comes up it takes the focus; in background mode the mod hands it
+// straight back to the window that was in front when the game started and puts the game
+// window behind the others, so a tool can start the game without interrupting the user.
 //
 // The viewport also polls GetKeyState every frame and releases any key the OS says is up,
 // which turns a posted key-down into a tap. Keys the tools hold (BackgroundSetKeyHeld) are
@@ -14,11 +18,13 @@
 
 static bool g_enabled;
 static HWND g_window;
+static HWND g_userWindow;   // in front when the game started (not the game's)
+static DWORD g_firstPresent;
 static WNDPROC g_origWndProc;
 static volatile bool g_held[256];
 
 typedef HWND (WINAPI* PFN_GetHwnd)();
-static PFN_GetHwnd g_origGetFocus, g_origGetActiveWindow;
+static PFN_GetHwnd g_origGetFocus, g_origGetActiveWindow, g_origGetForegroundWindow;
 typedef SHORT (WINAPI* PFN_GetKeyState)(int vk);
 static PFN_GetKeyState g_origGetKeyState, g_origGetAsyncKeyState;
 
@@ -87,6 +93,11 @@ static HWND WINAPI HookGetActiveWindow()
     return (g_enabled && g_window) ? g_window : g_origGetActiveWindow();
 }
 
+static HWND WINAPI HookGetForegroundWindow()
+{
+    return (g_enabled && g_window) ? g_window : g_origGetForegroundWindow();
+}
+
 // Swallows the deactivation messages that would pause the game.
 static LRESULT CALLBACK BackgroundWndProc(HWND h, UINT msg, WPARAM w, LPARAM l)
 {
@@ -104,6 +115,21 @@ void BackgroundInit()
     char path[MAX_PATH];
     wsprintfA(path, "%srowe.ini", ModDir());
     g_enabled = GetPrivateProfileIntA("rowe", "background", 0, path) != 0;
+    HWND front = GetForegroundWindow();
+    DWORD pid = 0;
+    GetWindowThreadProcessId(front, &pid);
+    if (g_enabled && front && pid != GetCurrentProcessId()) g_userWindow = front;
+}
+
+// The first seconds after the game window appears: whenever it takes the focus, it goes back.
+static void ReturnFocus(HWND window)
+{
+    if (!g_userWindow || GetTickCount() - g_firstPresent > 20000) return;
+    if (GetForegroundWindow() != window) return;
+    if (!IsWindow(g_userWindow)) { g_userWindow = nullptr; return; }
+    SetWindowPos(window, HWND_BOTTOM, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+    SetForegroundWindow(g_userWindow);
+    Log("background mode: focus returned to %p", g_userWindow);
 }
 
 bool BackgroundEnabled() { return g_enabled; }
@@ -113,6 +139,7 @@ void BackgroundInstall()
 {
     g_origGetFocus = (PFN_GetHwnd)PatchExeImport("user32.dll", "GetFocus", (void*)HookGetFocus);
     g_origGetActiveWindow = (PFN_GetHwnd)PatchExeImport("user32.dll", "GetActiveWindow", (void*)HookGetActiveWindow);
+    g_origGetForegroundWindow = (PFN_GetHwnd)PatchExeImport("user32.dll", "GetForegroundWindow", (void*)HookGetForegroundWindow);
     g_origGetKeyState = (PFN_GetKeyState)PatchExeImport("user32.dll", "GetKeyState", (void*)HookGetKeyState);
     g_origGetAsyncKeyState = (PFN_GetKeyState)PatchExeImport("user32.dll", "GetAsyncKeyState", (void*)HookGetAsyncKeyState);
     g_origGetCursorPos = (PFN_GetCursorPos)PatchExeImport("user32.dll", "GetCursorPos", (void*)HookGetCursorPos);
@@ -122,8 +149,13 @@ void BackgroundInstall()
 // Called from Present with the swap chain's output window.
 void BackgroundOnPresent(HWND window)
 {
-    if (!g_enabled || !window || window == g_window) return;
+    if (!g_enabled || !window) return;
+    if (window == g_window) {
+        ReturnFocus(window);
+        return;
+    }
     g_window = window;
+    g_firstPresent = GetTickCount();
     g_origWndProc = (WNDPROC)SetWindowLongPtrW(window, GWLP_WNDPROC, (LONG_PTR)BackgroundWndProc);
     // The window may never have been activated if the game started behind other windows.
     PostMessageW(window, WM_ACTIVATEAPP, TRUE, 0);

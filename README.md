@@ -10,7 +10,7 @@ A mod for **Gears of War for Windows** (PC, 2007) that adds:
 - **Supersampling** up to 10× (renders at a higher resolution and averages it down). The HUD, menus and subtitles keep their normal size, and it can be changed while playing.
 - **Mouse trap**: keeps the cursor on the game's monitor, during gameplay only or in menus too, so it can't drift onto another screen.
 - **Intro skip**: no ESRB, Epic and Microsoft Game Studios videos at startup. Loading screens still play.
-- An in-game **settings menu** (F8).
+- An in-game **settings menu** (F8), styled like the game's own menus.
 - **Screenshots** (F9 by default) as JPEG or PNG, at the full supersampled resolution or the screen's, to a folder you choose. They are written in the background, so the game doesn't stall.
 - A **launcher** (`rowe_launcher.exe`): all settings before the game starts, **save slots** for the campaign, and a direct start into **Continue** or a **New campaign** at a chosen difficulty.
 
@@ -118,7 +118,7 @@ The game imports `d3d9.dll` even when it renders with DirectX 10, so a proxy DLL
 | `src/crashlog.cpp` | Writes the crash address and stack to `rowe.log` |
 | `src/launch.cpp` | Carries out the launcher's start request (continue, or a new campaign through the menus) |
 | `src/launcher/launcher.cpp` | The launcher |
-| `third_party/` | Dear ImGui (MIT) and Share Tech Mono (SIL OFL), each with its licence, for the launcher |
+| `third_party/` | Dear ImGui (MIT) and Share Tech Mono (SIL OFL), each with its licence, for the launcher and the F8 menu |
 | `src/background.cpp`, `src/gamecmd.cpp`, `src/textcapture.cpp`, `src/fovtrace.cpp` | Developer tooling (see below) |
 | `test/harness.cpp` | Loads the DLL outside the game and renders the settings menu |
 
@@ -139,6 +139,7 @@ These exist to diagnose and test the mod without a person at the keyboard. Norma
 - `rowe.log` records what was hooked, settings changes and, on a crash, the faulting address with the return addresses found on the stack.
 - `background=1` keeps the game running and accepting input while its window is in the background.
   Keys and mouse buttons held by the tools count as held down. A tool cursor replaces the real one inside the game.
+  When the game window first appears, the focus goes back to the window that was in front and the game window moves behind the others.
 - `rowe_cmd.txt`: commands, one per line, run on the game thread and then deleted:
 
   | Command | Effect |
@@ -150,12 +151,15 @@ These exist to diagnose and test the mod without a person at the keyboard. Norma
   | `mouse <x> <y>` | Move the cursor (client pixels) |
   | `lmb down` / `lmb up` | Left mouse button |
   | `ss <factor>` | Set supersampling |
+  | `usershot` | Take a screenshot as the screenshot key does |
+  | `menu <action>` | The F8 menu: `open`, `close`, `up`, `down`, `left`, `right`, `left10`, `right10`, `home` |
 - `rowe_state.txt` is rewritten twice a second. It holds the frame count, whether the gameplay camera is active, the lens and supersampling state, and every string drawn on screen with its position and color. The highlighted menu entry is the one with alpha 0.99.
 - Request files: create the file next to the DLL and the mod picks it up within a few frames:
 
   | File | Effect |
   |---|---|
   | `rowe_shot.req` | Screenshot at the screen's size (`rowe_shot_<date>_<time>.png`) |
+  | `rowe_ui.req` | The same with the F8 menu drawn (`rowe_ui_<date>_<time>.png`) |
   | `rowe_scene.req` | Screenshot of the 3D scene before the HUD (`rowe_scene_<date>_<time>.png`) |
   | `rowe_reload.req` | Re-read `rowe.ini` |
   | `rowe_fovtrace.req` | Record 8 seconds of per-frame camera, FOV and lens data to `rowe_fovtrace.csv` |
@@ -167,5 +171,5 @@ MIT, see [LICENSE](LICENSE).
 ## Credits
 
 - Lens projections follow Shaun LeBron's [flex-fov](https://github.com/shaunlebron/flex-fov).
-- The launcher uses [Dear ImGui](https://github.com/ocornut/imgui) (MIT) and the Share Tech Mono font (SIL Open Font License).
+- The launcher uses [Dear ImGui](https://github.com/ocornut/imgui) (MIT) and the Share Tech Mono font (SIL Open Font License). The F8 menu uses the same font, rasterized with ImGui's copy of [stb_truetype](https://github.com/nothings/stb) (MIT / public domain).
 - Gears of War is a trademark of Microsoft. This project is not affiliated with Microsoft or Epic Games and contains no game files.

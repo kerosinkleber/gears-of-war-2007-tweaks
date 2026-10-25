@@ -8,8 +8,9 @@
 // in the frame it is taken, read back over the next frames in strips (a staging copy polled
 // without waiting) and encoded on a worker thread.
 //
-// Tools: rowe_shot.req saves the frame at the screen's size and rowe_scene.req the 3D scene
-// before the HUD (from lens.cpp), both as rowe_<kind>_<date>_<time>.png next to the DLL.
+// Tools: rowe_shot.req saves the frame at the screen's size, rowe_ui.req the same with the
+// settings menu drawn and rowe_scene.req the 3D scene before the HUD (from lens.cpp), all as
+// rowe_<kind>_<date>_<time>.png next to the DLL.
 #include <windows.h>
 #include <d3d10.h>
 #include <wincodec.h>
@@ -504,6 +505,26 @@ void ScreenshotFrame(IDXGISwapChain* swap, bool focused)
         if (src) Start(dev, src, path, false);
     }
     if (src) src->Release();
+    dev->Release();
+}
+
+// After the settings menu is drawn (from Present): rowe_ui.req.
+void ScreenshotWithMenu(IDXGISwapChain* swap)
+{
+    static DWORD counter;
+    static bool want;
+    if (Requested("rowe_ui.req", counter)) want = true;
+    if (!want || s_busy) return;
+    want = false;
+    ID3D10Device* dev = nullptr;
+    ID3D10Texture2D* src = nullptr;
+    if (FAILED(swap->GetDevice(__uuidof(ID3D10Device), (void**)&dev)) || !dev) return;
+    if (SUCCEEDED(SwapGetRealBuffer(swap, &src)) && src) {
+        char path[MAX_PATH];
+        ToolPath(path, "ui");
+        Start(dev, src, path, false);
+        src->Release();
+    }
     dev->Release();
 }
 

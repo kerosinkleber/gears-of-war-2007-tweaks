@@ -1,8 +1,10 @@
 // Test harness: loads out\d3d9.dll like the game does, renders a few D3D10 frames through a
 // hooked swap chain with the overlay forced open, and saves a capture to out\harness.bmp.
+// Optional arguments: the back buffer's width and height (default 1280 720).
 #include <windows.h>
 #include <d3d10.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 typedef void* (WINAPI* PFN_Direct3DCreate9)(UINT);
 
@@ -42,8 +44,9 @@ static void SaveBmp(HWND hwnd, const char* path)
     ReleaseDC(hwnd, wdc);
 }
 
-int main()
+int main(int argc, char** argv)
 {
+    int bw = argc > 2 ? atoi(argv[1]) : 1280, bh = argc > 2 ? atoi(argv[2]) : 720;
     char dir[MAX_PATH];
     GetModuleFileNameA(nullptr, dir, MAX_PATH);
     *strrchr(dir, '\\') = 0;
@@ -62,15 +65,15 @@ int main()
     wc.hInstance = GetModuleHandleA(nullptr);
     wc.lpszClassName = "rowe_harness";
     RegisterClassA(&wc);
-    RECT r = {0, 0, 1280, 720};
+    RECT r = {0, 0, bw, bh};
     AdjustWindowRect(&r, WS_OVERLAPPEDWINDOW, FALSE);
     HWND hwnd = CreateWindowA("rowe_harness", "ROWE harness", WS_OVERLAPPEDWINDOW | WS_VISIBLE,
         50, 50, r.right - r.left, r.bottom - r.top, nullptr, nullptr, wc.hInstance, nullptr);
 
     DXGI_SWAP_CHAIN_DESC sd = {};
     sd.BufferCount = 1;
-    sd.BufferDesc.Width = 1280;
-    sd.BufferDesc.Height = 720;
+    sd.BufferDesc.Width = bw;
+    sd.BufferDesc.Height = bh;
     sd.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
     sd.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
     sd.OutputWindow = hwnd;

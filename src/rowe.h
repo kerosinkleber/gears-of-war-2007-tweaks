@@ -108,12 +108,14 @@ void LensSetMode(int mode);  // saves to rowe.ini
 // overlay.cpp: the F8 settings menu (also polls the F9 screenshot and Tab shoulder keys).
 void OverlayFrame(IDXGISwapChain* swap);  // from Present, after the supersampling resolve
 void OverlayLost();                       // before the swap chain's buffers are resized
+bool OverlayCommand(const char* name);    // tools: open/close/up/down/left/right/left10/right10/home
 
 // screenshot.cpp: the screenshot key (JPEG/PNG, full supersampled or screen size, written in the
 // background) and the tools' captures.
 void ScreenshotInit();                                   // reads rowe.ini
 void ScreenshotFrame(IDXGISwapChain* swap, bool focused);  // from Present, before the overlay draws
 void ScreenshotScene(IDXGISwapChain* swap);              // after the 3D scene: rowe_scene.req
+void ScreenshotWithMenu(IDXGISwapChain* swap);           // after the overlay: rowe_ui.req
 bool ScreenshotJpg();
 void ScreenshotSetJpg(bool jpg);     // saves to rowe.ini
 bool ScreenshotFull();

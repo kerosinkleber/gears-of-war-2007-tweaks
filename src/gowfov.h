@@ -27,6 +27,8 @@ void IntrosSetSkipped(bool skip);
 // gamecmd.cpp: gowfov_cmd.txt commands and gowfov_state.txt status (see the file header).
 void GameCmdTick();                   // once per frame, game thread
 void GameCmdSetWindow(HWND window);
+bool GameCmdKey(const char* name);    // posts a key press to the game window (false: no window yet)
+void GameCmdTravel(const char* url);  // GEngine->SetClientTravel
 
 // fovtrace.cpp: per-frame FOV pipeline trace (request: gowfov_fovtrace.req).
 void FovTraceAdd(char kind, float a, float b, float c, float d, void* obj);
@@ -36,6 +38,13 @@ void FovTracePresent();
 void TextCaptureInstall();
 void TextCaptureFrame();
 void TextCaptureWrite(FILE* f);
+bool TextFind(const wchar_t* text, float* y, float* alpha);  // a string drawn last frame
+bool TextFocused(wchar_t* out, int size, float* y);          // the highlighted menu entry
+
+// launch.cpp: carries out gowfov_launch.txt (written by the launcher): continue the campaign or
+// start a new one at a difficulty, through the game's own menus.
+void LaunchInit();   // DllMain: reads and deletes the request (game process only)
+void LaunchTick();   // once per frame, game thread
 
 // background.cpp: gowfov.ini background=1 keeps the game active and accepting posted input
 // while unfocused (for driving it from tools).

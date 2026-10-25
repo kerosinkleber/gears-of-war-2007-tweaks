@@ -10,6 +10,7 @@ A mod for **Gears of War for Windows** (PC, 2007) that adds:
 - **Intro skip**: no ESRB, Epic and Microsoft Game Studios videos at startup. Loading screens still play.
 - An in-game **settings menu** (F8).
 - **Screenshots** (F9 by default) as JPEG or PNG, at the full supersampled resolution or the screen's, to a folder you choose. They are written in the background, so the game doesn't stall.
+- A **launcher** (`gowfov_launcher.exe`): all settings before the game starts, **save slots** for the campaign, and a direct start into **Continue** or a **New campaign** at a chosen difficulty.
 
 It is a single `d3d9.dll` that goes next to the game's executable. No game files are modified. Its own files keep the mod's original name, gowfov (`gowfov.ini`, `gowfov.log`).
 
@@ -27,9 +28,29 @@ It is a single `d3d9.dll` that goes next to the game's executable. No game files
 
 1. Download `d3d9.dll` from the [releases](https://github.com/kerosinkleber/gears-of-war-2007-tweaks/releases), or build it yourself (see below).
 2. Copy it into the game's `Binaries` folder, next to `WarGame-G4WLive.exe`.
-3. Start the game as usual through `Startup.exe`.
+3. Start the game as usual through `Startup.exe`, or through the launcher (below).
 
-To uninstall, delete `d3d9.dll`, plus `gowfov.ini` and `gowfov.log` if they exist.
+To uninstall, delete `d3d9.dll`, plus `gowfov.ini` and `gowfov.log` if they exist (and `gowfov_launcher.exe` and the `gowfov_saves` folder if you used the launcher).
+
+## Launcher
+
+`gowfov_launcher.exe` goes into the same `Binaries` folder. It has three tabs:
+
+- **Play**:
+  - **Continue campaign** starts the game and loads the checkpoint, without clicking through the menus.
+  - **New campaign** on Casual, Hardcore or Insane starts the game and goes through its own menus (Campaign, Single Player, New Campaign, the difficulty, and the checkpoint overwrite question) by itself. Insane is only offered by the game after you finish the campaign; if it is locked, the launcher's request stops at the difficulty screen.
+  - **Save slots**: the game has only one checkpoint, and a new campaign overwrites it. The launcher keeps copies of it as named slots. **Save current campaign** stores the current checkpoint; **Restore selected** puts a slot back, so the next Continue loads it. Before a new campaign or a restore, the current checkpoint is stored as a slot by itself (unless a slot already holds exactly it).
+- **Mod settings**: everything in `gowfov.ini`.
+- **Game settings**: resolution, fullscreen, DirectX 10, VSync, antialiasing, anisotropic filtering, detail and effects, in the game's `WarEngineUserSettings.ini`.
+
+Settings are saved as you change them. Desktop shortcuts can start the game at once: `gowfov_launcher.exe --continue`, or `--new casual` / `--new hardcore` / `--new insane`.
+
+Notes:
+
+- The checkpoint lives in the player profile. Save slots work with the XLiveEmu GFWL replacement, which keeps the profile in `Binaries\XLiveEmu\<profile>\Offline\Title1–3.dat`. Those files are encrypted for your Windows account, so slots cannot be moved to another PC or user.
+- A slot holds the whole profile file, so restoring one also brings back that time's options and unlocked chapters.
+- Starting into Continue or a new campaign reads the game's English menu texts. With another game language the launcher's request stops at the menu and you continue by hand.
+- Slots are folders in `Binaries\gowfov_saves`; each has a `slot.ini` with its name and date.
 
 ## Using it
 
@@ -92,6 +113,9 @@ The game imports `d3d9.dll` even when it renders with DirectX 10, so a proxy DLL
 | `src/intros.cpp` | Intro skip |
 | `src/screenshot.cpp` | Screenshots (GPU copy, read back over a few frames, JPEG/PNG encoding on a worker thread) |
 | `src/crashlog.cpp` | Writes the crash address and stack to `gowfov.log` |
+| `src/launch.cpp` | Carries out the launcher's start request (continue, or a new campaign through the menus) |
+| `src/launcher/launcher.cpp` | The launcher |
+| `third_party/` | Dear ImGui (MIT) and Share Tech Mono (SIL OFL), each with its licence, for the launcher |
 | `src/background.cpp`, `src/gamecmd.cpp`, `src/textcapture.cpp`, `src/fovtrace.cpp` | Developer tooling (see below) |
 | `test/harness.cpp` | Loads the DLL outside the game and renders the settings menu |
 
@@ -103,7 +127,7 @@ Needs Visual Studio 2017 or newer (the free Build Tools are enough) with the C++
 build.bat
 ```
 
-The output is `out\d3d9.dll`, a 32-bit DLL with the C runtime linked in statically, so no Visual C++ redistributable is needed. The script also builds `out\harness.exe`. That program loads the DLL, renders a few frames with the settings menu forced open, and saves `out\harness.bmp`.
+The output is `out\d3d9.dll`, a 32-bit DLL with the C runtime linked in statically, so no Visual C++ redistributable is needed, and `out\gowfov_launcher.exe`. The script also builds `out\harness.exe`. That program loads the DLL, renders a few frames with the settings menu forced open, and saves `out\harness.bmp`.
 
 ## Developer tooling
 
@@ -140,4 +164,5 @@ MIT, see [LICENSE](LICENSE).
 ## Credits
 
 - Lens projections follow Shaun LeBron's [flex-fov](https://github.com/shaunlebron/flex-fov).
+- The launcher uses [Dear ImGui](https://github.com/ocornut/imgui) (MIT) and the Share Tech Mono font (SIL Open Font License).
 - Gears of War is a trademark of Microsoft. This project is not affiliated with Microsoft or Epic Games and contains no game files.

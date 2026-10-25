@@ -27,6 +27,9 @@ static DWORD g_frames;
 void GameCmdSetWindow(HWND window) { g_window = window; }
 
 // Same call the menus make to load a map or the saved game.
+static void Travel(const char* url);
+void GameCmdTravel(const char* url) { Travel(url); }
+
 static void Travel(const char* url)
 {
     void* engine = *(void**)kGEngine;
@@ -38,8 +41,8 @@ static void Travel(const char* url)
     Log("cmd: travel %s", url);
 }
 
-// phase: 0 = press and release, 1 = down only, 2 = up only
-static void PostKey(const char* name, int phase = 0)
+// phase: 0 = press and release, 1 = down only, 2 = up only. False if nothing was posted.
+static bool PostKey(const char* name, int phase = 0)
 {
     static const struct { const char* name; UINT vk; bool ext; } kKeys[] = {
         {"enter", VK_RETURN, false}, {"esc", VK_ESCAPE, false}, {"up", VK_UP, true}, {"down", VK_DOWN, true},
@@ -49,7 +52,7 @@ static void PostKey(const char* name, int phase = 0)
     };
     for (auto& k : kKeys) {
         if (lstrcmpiA(k.name, name) != 0) continue;
-        if (!g_window) { Log("cmd: no game window yet"); return; }
+        if (!g_window) { Log("cmd: no game window yet"); return false; }
         UINT scan = MapVirtualKeyA(k.vk, MAPVK_VK_TO_VSC);
         LPARAM down = 1 | (scan << 16) | (k.ext ? (1 << 24) : 0);
         LPARAM up = down | (1u << 30) | (1u << 31);
@@ -58,12 +61,15 @@ static void PostKey(const char* name, int phase = 0)
         if (phase != 2) PostMessageA(g_window, WM_KEYDOWN, k.vk, down);
         if (phase != 1) PostMessageA(g_window, WM_KEYUP, k.vk, up);
         Log("cmd: key %s (%d)", name, phase);
-        return;
+        return true;
     }
     Log("cmd: unknown key %s", name);
+    return false;
 }
 
 // Right button at the client centre (aiming).
+bool GameCmdKey(const char* name) { return PostKey(name); }
+
 static void PostRightMouse(bool down)
 {
     if (!g_window) return;
@@ -161,6 +167,7 @@ void GameCmdTick()
 {
     ++g_frames;
     TextCaptureFrame();
+    LaunchTick();
     if (g_frames % 10 == 0) RunCommands();
     if (g_frames % 30 == 0) WriteState();
 }

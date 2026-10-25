@@ -67,3 +67,29 @@ void TextCaptureWrite(FILE* f)
             e.x, e.y, e.color[0], e.color[1], e.color[2], e.color[3], e.scaleX, e.scaleY, e.caller, utf8);
     }
 }
+
+// The string drawn last frame with exactly this text (game thread): its position and alpha.
+bool TextFind(const wchar_t* text, float* y, float* alpha)
+{
+    for (int i = 0; i < g_lastCount; ++i) {
+        if (lstrcmpW(g_last[i].text, text) != 0) continue;
+        if (y) *y = g_last[i].y;
+        if (alpha) *alpha = g_last[i].color[3];
+        return true;
+    }
+    return false;
+}
+
+// The highlighted menu entry drawn last frame (the game draws it at alpha 0.99, the others at
+// 0.65, headings and descriptions at 1.0): its text, or false if there is none.
+bool TextFocused(wchar_t* out, int size, float* y)
+{
+    for (int i = 0; i < g_lastCount; ++i) {
+        float a = g_last[i].color[3];
+        if (a < 0.97f || a > 0.995f) continue;
+        lstrcpynW(out, g_last[i].text, size);
+        if (y) *y = g_last[i].y;
+        return true;
+    }
+    return false;
+}

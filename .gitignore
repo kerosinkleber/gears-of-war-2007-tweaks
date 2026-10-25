@@ -10,6 +10,8 @@ gowfov_state.tmp
 gowfov_cmd.txt
 gowfov_fovtrace.csv
 *.req
+gowfov_launch.txt
+gowfov_saves/
 
 # Editor and Visual Studio files
 .vs/

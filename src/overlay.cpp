@@ -73,7 +73,7 @@ static void Text(float x, float y, const char* s, float px, DWORD c)
 
 enum { kRowFov, kRowAimFov, kRowLens, kRowSupersample, kRowShoulder, kRowMouseTrap, kRowShotFormat, kRowShotSize,
        kRowIntros, kRowCount };
-static const float kSupersampleSteps[] = {1.f, 2.f, 2.25f, 3.f, 4.f, 5.f, 6.f, 8.f};
+static const float kSupersampleSteps[] = {1.f, 2.f, 2.25f, 3.f, 4.f, 5.f, 6.f, 8.f, 9.f, 10.f};
 static const int kSupersampleStepCount = sizeof(kSupersampleSteps) / sizeof(kSupersampleSteps[0]);
 static const DWORD kSupersampleApplyDelay = 600;  // ms after the last change, so cycling is cheap
 

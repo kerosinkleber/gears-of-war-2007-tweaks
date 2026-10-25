@@ -450,6 +450,16 @@ static void ToolPath(char* out, const char* kind)
 // Every frame from Present, after the supersampling resolve and before the settings menu is
 // drawn. focused: the game window is in front (the key is only read then).
 static volatile bool s_userRequest;
+static char s_pathRequest[MAX_PATH];  // ScreenshotRequestTo: screen-size JPEG to this path
+static volatile bool s_pathPending;
+
+// The next frame at the screen's size as a JPEG to `path` (game thread; used for the launcher's
+// background).
+void ScreenshotRequestTo(const char* path)
+{
+    lstrcpynA(s_pathRequest, path, MAX_PATH);
+    s_pathPending = true;
+}
 
 // Tools (`usershot` command): takes a screenshot as the key does.
 void ScreenshotRequestUser() { s_userRequest = true; }
@@ -466,7 +476,8 @@ void ScreenshotFrame(IDXGISwapChain* swap, bool focused)
     if (Requested("gowfov_shot.req", counter)) wantTool = true;
 
     ReadStrips();
-    if (!wantUser && !(wantTool && !s_busy)) return;
+    bool wantPath = s_pathPending && !s_busy;
+    if (!wantUser && !(wantTool && !s_busy) && !wantPath) return;
 
     ID3D10Device* dev = nullptr;
     if (FAILED(swap->GetDevice(__uuidof(ID3D10Device), (void**)&dev)) || !dev) return;
@@ -482,6 +493,10 @@ void ScreenshotFrame(IDXGISwapChain* swap, bool focused)
         _snprintf(path, MAX_PATH - 1, "%sGearsOfWar_%s.%s", dir, stamp, g_jpg ? "jpg" : "png");
         path[MAX_PATH - 1] = 0;
         if (src) Start(dev, src, path, g_jpg);
+    } else if (wantPath) {
+        s_pathPending = false;
+        SwapGetRealBuffer(swap, &src);
+        if (src) Start(dev, src, s_pathRequest, true);
     } else {
         wantTool = false;
         SwapGetRealBuffer(swap, &src);

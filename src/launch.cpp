@@ -93,9 +93,52 @@ static void Accept(Step next, DWORD now)
     Go(next);
 }
 
+// The launcher's background: the title screen, saved once as gowfov_menubg.jpg next to the DLL
+// in a frame where "Press Start" is blinked off, so only the artwork shows. It is taken on this
+// PC from the user's own game, so the launcher ships no game art. The capture goes to a
+// temporary file first and is kept only if the text comes back (it was the blink, not the
+// player leaving the title screen).
+static void MenuBackgroundTick(DWORD now)
+{
+    static bool done;
+    static DWORD titleSince, gone, captured;
+    if (done) return;
+    char path[MAX_PATH], tmp[MAX_PATH];
+    wsprintfA(path, "%sgowfov_menubg.jpg", ModDir());
+    wsprintfA(tmp, "%sgowfov_menubg.tmp.jpg", ModDir());
+    if (GetFileAttributesA(path) != INVALID_FILE_ATTRIBUTES) {
+        done = true;
+        return;
+    }
+    bool text = Shown(L"Press ") || Shown(L" to Start");
+    if (captured) {
+        if (text && now - captured > 300) {  // the blink: keep it
+            MoveFileExA(tmp, path, MOVEFILE_REPLACE_EXISTING);
+            Log("launch: saved the launcher background %s", path);
+            done = true;
+        } else if (now - captured > 2000) {  // left the title screen: try again next time
+            DeleteFileA(tmp);
+            captured = 0;
+            titleSince = 0;
+        }
+        return;
+    }
+    if (text) {
+        if (!titleSince) titleSince = now;
+        gone = 0;
+        return;
+    }
+    if (!titleSince || now - titleSince < 3000) return;  // let the title screen fade in
+    if (!gone) gone = now;
+    if (now - gone < 100) return;  // a few frames without the text
+    ScreenshotRequestTo(tmp);
+    captured = now;
+}
+
 // Once per frame (game thread), after the text of the last frame is known.
 void LaunchTick()
 {
+    MenuBackgroundTick(GetTickCount());
     if (g_action == kNone) return;
     DWORD now = GetTickCount();
     DWORD timeout = g_step == kTitle ? 120000 : 20000;

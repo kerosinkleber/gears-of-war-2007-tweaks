@@ -120,6 +120,7 @@ bool ScreenshotFull();
 void ScreenshotSetFull(bool full);   // saves to gowfov.ini
 const char* ScreenshotKeyName();
 void ScreenshotRequestUser();    // tools: a screenshot as the key takes it
+void ScreenshotRequestTo(const char* path);  // the next frame, screen size, JPEG
 
 // fov.cpp
 // 0 means "game default" (no override); otherwise horizontal FOV in degrees, at most kFovMax.

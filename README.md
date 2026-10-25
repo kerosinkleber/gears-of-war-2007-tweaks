@@ -5,7 +5,7 @@ A mod for **Gears of War for Windows** (PC, 2007) that adds:
 - **FOV slider** (60–159°), and an **aim FOV** for how far aiming zooms in. Sniper scopes keep their zoom.
 - **Lens correction** in the style of [flex-fov](https://github.com/shaunlebron/flex-fov): very wide FOVs without stretched edges (Panini, stereographic or fisheye projection).
 - **Shoulder swap** on Tab, with a setting for the shoulder the camera starts on.
-- **Supersampling** up to 8× (renders at a higher resolution and averages it down). The HUD, menus and subtitles keep their normal size, and it can be changed while playing.
+- **Supersampling** up to 10× (renders at a higher resolution and averages it down). The HUD, menus and subtitles keep their normal size, and it can be changed while playing.
 - **Mouse trap**: keeps the cursor on the game's monitor, during gameplay only or in menus too, so it can't drift onto another screen.
 - **Intro skip**: no ESRB, Epic and Microsoft Game Studios videos at startup. Loading screens still play.
 - An in-game **settings menu** (F8).
@@ -34,14 +34,15 @@ To uninstall, delete `d3d9.dll`, plus `gowfov.ini` and `gowfov.log` if they exis
 
 ## Launcher
 
-`gowfov_launcher.exe` goes into the same `Binaries` folder. It has three tabs:
+`gowfov_launcher.exe` goes into the same `Binaries` folder. It looks and works like the game's own menus: the title screen's artwork behind it, the entries as bars with the highlighted one lit, and a large title and a line of help for the highlighted entry. Use it with the arrow keys, Enter and Esc, or the mouse (click, wheel to change a setting). Its pages:
 
-- **Play**:
-  - **Continue campaign** starts the game and loads the checkpoint, without clicking through the menus.
-  - **New campaign** on Casual, Hardcore or Insane starts the game and goes through its own menus (Campaign, Single Player, New Campaign, the difficulty, and the checkpoint overwrite question) by itself. Insane is only offered by the game after you finish the campaign; if it is locked, the launcher's request stops at the difficulty screen.
-  - **Save slots**: the game has only one checkpoint, and a new campaign overwrites it. The launcher keeps copies of it as named slots. **Save current campaign** stores the current checkpoint; **Restore selected** puts a slot back, so the next Continue loads it. Before a new campaign or a restore, the current checkpoint is stored as a slot by itself (unless a slot already holds exactly it).
+- **Continue campaign** starts the game and loads the checkpoint, without clicking through the menus.
+- **New campaign** on Casual, Hardcore or Insane starts the game and goes through its own menus (Campaign, Single Player, New Campaign, the difficulty, and the checkpoint overwrite question) by itself. Insane is only offered by the game after you finish the campaign; if it is locked, the launcher's request stops at the difficulty screen.
+- **Save slots**: the game has only one checkpoint, and a new campaign overwrites it. The launcher keeps copies of it as named slots. **Save current campaign** stores the current checkpoint; Enter on a slot restores it (the next Continue loads it) or deletes it. Before a new campaign or a restore, the current checkpoint is stored as a slot by itself (unless a slot already holds exactly it).
 - **Mod settings**: everything in `gowfov.ini`.
 - **Game settings**: resolution, fullscreen, DirectX 10, VSync, antialiasing, anisotropic filtering, detail and effects, in the game's `WarEngineUserSettings.ini`.
+
+The background is the game's title screen, saved by the mod as `gowfov_menubg.jpg` the first time the title screen shows (in a moment when "Press Start" is blinked off), so the launcher contains no game art. Until then it shows a dark red background.
 
 Settings are saved as you change them. Desktop shortcuts can start the game at once: `gowfov_launcher.exe --continue`, or `--new casual` / `--new hardcore` / `--new insane`.
 
@@ -70,7 +71,7 @@ Settings are saved to `gowfov.ini` next to the DLL the first time one is changed
 | `fov` | `0` = game default, otherwise 60–159. This is the FOV of the normal camera (the game uses 80); wider camera modes get the same increase up to 159°, and aiming is set by `aimfov`. | `0` |
 | `aimfov` | `0` = game default (40), otherwise 30–120 (at most the `fov` value): the FOV while aiming. Camera modes zoomed in further than aiming (sniper scopes, 25° and below) keep their FOV. | `0` |
 | `lens` | `0` off, `1` auto (rectilinear up to 90°, blending into Panini by 160°), `2` Panini, `3` stereographic, `4` fisheye (equidistant: angles spread evenly from the centre; above about 140° the corners beyond the rendered view stay black, like a fisheye lens' vignette) | `1` |
-| `supersample` | Pixel-count multiplier, 1–9 (`4` = twice the width and height). Fullscreen only. | `1` |
+| `supersample` | Pixel-count multiplier, 1–10 (`4` = twice the width and height). Fullscreen only. The rendered size is capped at 8192 pixels per side (the DirectX 10 limit), at 2560×1440 reached at about 10×. | `1` |
 | `shoulder` | `right` or `left`: the shoulder the camera starts on | `right` |
 | `mousetrap` | `0` off (the game's own behaviour), `1` keep the cursor on the game's monitor during gameplay and free it in menus, pause, loading screens and cutscenes, `2` keep it there in menus too. Only while the game is in front; switching to another program frees the cursor. | `0` |
 | `skipintros` | `1` skip the intro videos, `0` play them (applies at the next start) | `1` |
@@ -84,7 +85,7 @@ Settings are saved to `gowfov.ini` next to the DLL the first time one is changed
 Notes:
 
 - The FOV is capped at 159°: the game renders one view, so the lens can't go much wider anyway (about 160° with Panini, 147° with stereographic, where a higher setting is capped at 147°; the fisheye goes to 160° with black corners). Near the cap, camera modes that are normally wider (such as the roadie run) can't widen any further.
-- Supersampling is demanding: 8× renders eight times as many pixels. Lower it if the frame rate drops.
+- Supersampling is demanding: 10× renders ten times as many pixels, and the engine's own buffers grow with it. Lower it if the frame rate drops.
 
 ## How it works
 

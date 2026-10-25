@@ -12,6 +12,7 @@ gowfov_fovtrace.csv
 *.req
 gowfov_launch.txt
 gowfov_saves/
+gowfov_menubg*.jpg
 
 # Editor and Visual Studio files
 .vs/

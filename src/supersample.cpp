@@ -21,6 +21,9 @@
 #include "downscale_ps.h"
 
 static const UINT kMaxTextureSize = 8192;  // D3D10 limit per axis
+// Highest pixel-count multiplier. The render size is also capped at kMaxTextureSize per axis
+// (ComputeVirtual), which at 2560x1440 is reached at about 10.2.
+static const float kMaxFactor = 10.f;
 
 static float g_factor = 1.f;          // pixel-count multiplier from gowfov.ini
 static volatile bool g_active;        // engine viewport is currently virtual
@@ -38,7 +41,7 @@ void SupersampleInit()
     GetPrivateProfileStringA("gowfov", "supersample", "1", val, sizeof(val), path);
     g_factor = (float)atof(val);
     if (g_factor < 1.f) g_factor = 1.f;
-    if (g_factor > 9.f) g_factor = 9.f;
+    if (g_factor > kMaxFactor) g_factor = kMaxFactor;
     Log("supersample: factor %.2f", g_factor);
 }
 
@@ -172,7 +175,7 @@ float SupersampleSetting() { return g_factor; }
 void SupersampleSetFactor(float factor)
 {
     if (factor < 1.f) factor = 1.f;
-    if (factor > 9.f) factor = 9.f;
+    if (factor > kMaxFactor) factor = kMaxFactor;
     char path[MAX_PATH], val[16];
     wsprintfA(path, "%sgowfov.ini", ModDir());
     sprintf_s(val, "%.2f", factor);

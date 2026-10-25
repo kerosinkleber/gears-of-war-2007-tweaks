@@ -45,5 +45,5 @@ cl /nologo /O2 /MT /EHsc /W3 /std:c++17 /D_CRT_SECURE_NO_WARNINGS /DIMGUI_IMPL_W
   /Fo"%OUT%\launcher\\" /Fe"%OUT%\gowfov_launcher.exe" "%SRC%\launcher\launcher.cpp" ^
   "%IMGUI%\imgui.cpp" "%IMGUI%\imgui_draw.cpp" "%IMGUI%\imgui_tables.cpp" "%IMGUI%\imgui_widgets.cpp" ^
   "%IMGUI%\backends\imgui_impl_dx9.cpp" "%IMGUI%\backends\imgui_impl_win32.cpp" ^
-  /link /SUBSYSTEM:WINDOWS user32.lib gdi32.lib kernel32.lib shell32.lib shlwapi.lib d3d9.lib dwmapi.lib || exit /b 1
+  /link /SUBSYSTEM:WINDOWS user32.lib gdi32.lib kernel32.lib shell32.lib shlwapi.lib ole32.lib windowscodecs.lib d3d9.lib dwmapi.lib || exit /b 1
 echo Built %OUT%\gowfov_launcher.exe

@@ -91,16 +91,32 @@ bool SupersampleBeforeResize(IDXGISwapChain* swap, UINT* w, UINT* h);
 void SupersampleAfterResize(IDXGISwapChain* swap, DXGI_FORMAT fmt);
 void SupersampleFixMode(IDXGISwapChain* swap, DXGI_MODE_DESC* mode);
 void SupersamplePresent(IDXGISwapChain* swap, ID3D10Texture2D* real);
+bool SupersampleInWindowedResize();  // inside the engine's viewport Resize, windowed
+bool SupersampleViewportWindowed();  // the viewport's last Resize was windowed
+void SupersampleResizeViewport();    // runs that Resize again (game thread, by a window message)
+
+// borderless.cpp: rowe.ini borderless=1 runs the game's window without a frame, centred on its
+// monitor (over a black backdrop if it is smaller). Only while the game runs in a window.
+void BorderlessInit();     // reads rowe.ini
+void BorderlessInstall();  // the exe's window style and placement imports (after SupersampleInstall)
+void BorderlessFrame(HWND window);  // from Present
+bool BorderlessGet();
+void BorderlessSet(bool on);  // saves; applies at once
+bool BorderlessWindowed();    // the game currently runs in a window
 
 // lens.cpp: hooks the engine's scene render commands (scene done, HUD not drawn yet) and
 // warps the frame into the chosen lens projection.
-enum { kLensOff = 0, kLensAuto = 1, kLensPanini = 2, kLensStereographic = 3, kLensFisheye = 4, kLensModeCount = 5 };
+// kLensFisheyeCircle: the fisheye zoomed out so that at the widest FOV all of the render shows, as a
+// circle fitted to the screen's height.
+enum { kLensOff = 0, kLensAuto = 1, kLensPanini = 2, kLensStereographic = 3, kLensFisheye = 4, kLensFisheyeCircle = 5,
+       kLensModeCount = 6 };
 void LensInit();
 void LensInstall();
 void LensOnPresent(IDXGISwapChain* swap);
 void LensOnResize();
 float LensRenderFov(float lensFov);  // FOV the engine must render for this lens FOV
 float LensEffectiveFov();            // lens FOV actually in use (0 when not warping)
+bool LensStats(float* shownFov, float* renderFov);  // last gameplay frame: shown (0 = not warped), rendered
 bool LensGameplayActive();           // the gameplay camera updated within the last few frames
 int LensGetMode();
 void LensSetMode(int mode);  // saves to rowe.ini
@@ -109,6 +125,13 @@ void LensSetMode(int mode);  // saves to rowe.ini
 void OverlayFrame(IDXGISwapChain* swap);  // from Present, after the supersampling resolve
 void OverlayLost();                       // before the swap chain's buffers are resized
 bool OverlayCommand(const char* name);    // tools: open/close/up/down/left/right/left10/right10/home
+void OverlaySetWindow(HWND window);       // from Present: subclasses the game window (mouse, menu keys)
+bool OverlayBlocksInput();                // the menu is open: the game gets no mouse input
+void OverlayMouseDI(int dx, int dy, int wheel, int buttonEdge);  // dinput.cpp: the game's mouse reads
+void OverlayStatsInto(ID3D10Texture2D* tex);  // screenshot.cpp: the stats window into a full-size shot
+
+// dinput.cpp: the game's DirectInput mouse, for the settings menu.
+void DInputInstall();  // the exe's DirectInput8Create import
 
 // screenshot.cpp: the screenshot key (JPEG/PNG, full supersampled or screen size, written in the
 // background) and the tools' captures.

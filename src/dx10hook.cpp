@@ -53,6 +53,8 @@ static HRESULT STDMETHODCALLTYPE HookPresent(IDXGISwapChain* swap, UINT sync, UI
         if (BackgroundEnabled()) BackgroundOnPresent(window);
         LensOnPresent(swap);                 // per-frame lens bookkeeping, settings reload
         FovTracePresent();                   // diagnostics trace (only when requested)
+        OverlaySetWindow(window);
+        BorderlessFrame(window);
         MouseTrapFrame(window);              // last window subclass: sees deactivation first
         ID3D10Texture2D* real = nullptr;
         if (SUCCEEDED(SwapGetRealBuffer(swap, &real)) && real) {

@@ -111,6 +111,7 @@ BOOL WINAPI DllMain(HINSTANCE inst, DWORD reason, LPVOID)
         LensInit();
         SupersampleInit();
         MouseTrapInit();
+        BorderlessInit();
         ScreenshotInit();
         LaunchInit();
         BackgroundInit();
@@ -122,6 +123,8 @@ BOOL WINAPI DllMain(HINSTANCE inst, DWORD reason, LPVOID)
         // call, so these hooks go in now (the exe's imports are already bound here).
         SupersampleEarlyInstall();
         SupersampleInstall();
+        BorderlessInstall();
+        DInputInstall();
     }
     return TRUE;
 }

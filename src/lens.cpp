@@ -71,6 +71,24 @@ static V3 RayFisheye(float sx, float sy, float half)
     return {px / r * sinf(r), py / r * sinf(r), cosf(r)};
 }
 
+// Fisheye full circle: the fisheye zoomed out by a fixed factor, so that at the widest FOV
+// (kFovMax) everything one view can render (up to kMaxRenderFov across the width) is shown, as a
+// circle of half-angle CircleTheta fitted to the screen's height, with black around it. The factor applies at every FOV: a lower setting or aiming
+// magnifies the picture and its circle together, so the circle grows past the screen's edges.
+// Its "lens FOV" (the table's index, LensEffectiveFov) stays the FOV setting; CircleHalf gives
+// the fisheye's actual half-angle across the width.
+static float CircleFit(float aspect) { return aspect > 1.f ? aspect : 1.f; }
+
+static float CircleTheta(float aspect)
+{
+    return atanf(tanf(kMaxRenderFov * kPi / 360.f) / CircleFit(aspect));
+}
+
+static float CircleHalf(float fovDeg, float aspect)
+{
+    return fovDeg / kFovMax * CircleTheta(aspect) * CircleFit(aspect);
+}
+
 // Flex-fov style ramp: rectilinear up to 90 degrees, full Panini from 160.
 static float AutoBlend(float fovDeg)
 {
@@ -83,7 +101,7 @@ static float AutoBlend(float fovDeg)
 static V3 Ray(int mode, float sx, float sy, float half, float blend)
 {
     if (mode == kLensStereographic) return RayStereographic(sx, sy, half);
-    if (mode == kLensFisheye) return RayFisheye(sx, sy, half);
+    if (mode == kLensFisheye || mode == kLensFisheyeCircle) return RayFisheye(sx, sy, half);
     if (mode == kLensPanini) return RayPanini(sx, sy, half);
     V3 a = RayRectilinear(sx, sy, half), b = RayPanini(sx, sy, half);
     return Norm({a.x + (b.x - a.x) * blend, a.y + (b.y - a.y) * blend, a.z + (b.z - a.z) * blend});
@@ -92,18 +110,30 @@ static V3 Ray(int mode, float sx, float sy, float half, float blend)
 // Smallest tan(render half-FOV) whose rectilinear image contains every ray the lens needs.
 static float CoverageTan(int mode, float fovDeg, float aspect)
 {
-    float half = fovDeg * kPi / 360.f, blend = AutoBlend(fovDeg);
+    bool circle = mode == kLensFisheyeCircle;
+    float half = circle ? CircleHalf(fovDeg, aspect) : fovDeg * kPi / 360.f, blend = AutoBlend(fovDeg);
+    float theta = circle ? CircleTheta(aspect) : 1e9f;
     float need = 0;
+    auto add = [&](V3 r) {
+        float x = fabsf(r.x / r.z), y = fabsf(r.y / r.z) * aspect;
+        if (x > need) need = x;
+        if (y > need) need = y;
+    };
     const int n = 48;
     for (int i = 0; i <= n; ++i) {
         float t = -1 + 2.f * i / n;
         float pts[4][2] = {{t, 1 / aspect}, {t, -1 / aspect}, {1, t / aspect}, {-1, t / aspect}};
         for (auto& p : pts) {
+            if (circle && sqrtf(p[0] * p[0] + p[1] * p[1]) * half > theta) continue;  // black, outside the circle
             V3 r = Ray(mode, p[0], p[1], half, blend);
             if (r.z <= 1e-4f) return 1e9f;
-            float x = fabsf(r.x / r.z), y = fabsf(r.y / r.z) * aspect;
-            if (x > need) need = x;
-            if (y > need) need = y;
+            add(r);
+        }
+    }
+    if (circle) {  // the circle's edge, where it lies on the screen
+        for (int i = 0; i < 4 * n; ++i) {
+            float a = 2 * kPi * i / (4 * n), sx = cosf(a) * theta / half, sy = sinf(a) * theta / half;
+            if (fabsf(sx) <= 1 && fabsf(sy) <= 1 / aspect) add({cosf(a) * sinf(theta), sinf(a) * sinf(theta), cosf(theta)});
         }
     }
     return need;
@@ -222,7 +252,21 @@ bool LensGameplayActive() { return g_presentCount - g_fovFrame <= 5; }
 
 // ---- warp rendering -----------------------------------------------------------------------
 
-struct LensCB { float halfFov, tanHalfRender, aspect, blend; int mode; float pad[3]; };
+struct LensCB { float halfFov, tanHalfRender, aspect, blend; int mode; float circle, pad[2]; };
+
+// For the stats window: the last gameplay frame's lens (what it shows across the width, 0 when
+// not warped) and the FOV it was rendered with, in degrees.
+static volatile float g_statShown, g_statRender;
+static volatile LONG g_statFrame = -100;
+
+bool LensStats(float* shownFov, float* renderFov)
+{
+    if (g_presentCount - g_statFrame > 5) return false;
+    *shownFov = g_statShown;
+    *renderFov = g_statRender;
+    return true;
+}
+
 
 static ID3D10Device* g_dev;
 static ID3D10VertexShader* g_vs;
@@ -413,6 +457,13 @@ static void Warp(IDXGISwapChain* swap, float actualTan)
     }
     FovTraceAdd('w', lensFov, atanf(renderTan) * 360.f / kPi, actualTan > 0 ? atanf(actualTan) * 360.f / kPi : 0.f,
         (float)g_presentCount, nullptr);
+    g_statRender = atanf(renderTan) * 360.f / kPi;
+    g_statShown = lensFov;
+    if (mode == kLensFisheyeCircle && lensFov > 0) {  // across the width, up to the circle's edge
+        float half = CircleHalf(lensFov, g_aspect), theta = CircleTheta(g_aspect);
+        g_statShown = (half < theta ? half : theta) * 360.f / kPi;
+    }
+    g_statFrame = g_presentCount;
     if (lensFov <= 0) return;
 
     ID3D10Device* dev = nullptr;
@@ -445,9 +496,11 @@ static void Warp(IDXGISwapChain* swap, float actualTan)
 
     LensCB* cb = nullptr;
     if (FAILED(g_cb->Map(D3D10_MAP_WRITE_DISCARD, 0, (void**)&cb))) return;
-    cb->halfFov = lensFov * kPi / 360.f;
-    cb->tanHalfRender = renderTan;
     cb->aspect = (float)g_copyDesc.Width / (float)g_copyDesc.Height;
+    bool circle = mode == kLensFisheyeCircle;
+    cb->halfFov = circle ? CircleHalf(lensFov, cb->aspect) : lensFov * kPi / 360.f;
+    cb->circle = circle ? CircleTheta(cb->aspect) : 0.f;
+    cb->tanHalfRender = renderTan;
     cb->blend = AutoBlend(lensFov);
     cb->mode = mode;
     g_cb->Unmap();

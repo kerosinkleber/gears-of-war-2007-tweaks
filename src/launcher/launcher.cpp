@@ -32,6 +32,7 @@
 #include "backends/imgui_impl_win32.h"
 #include "sharetechmono_ttf.h"
 #include "../migrate.h"
+#include "../keynames.h"
 
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
@@ -90,8 +91,8 @@ static void IniSetInt(const std::string& file, const char* section, const char* 
 struct ModSettings {
     int fov, aimFov, lens, mouseTrap, quality;
     float supersample;
-    bool shoulderLeft, skipIntros, jpg, full;
-    char key[16], dir[MAX_PATH];
+    bool shoulderLeft, skipIntros, jpg, full, borderless, stats;
+    char key[16], menuKey[16], dir[MAX_PATH];
 } g_mod;
 
 static const float kSupersampleSteps[] = {1.f, 2.f, 2.25f, 3.f, 4.f, 5.f, 6.f, 8.f, 9.f, 10.f};
@@ -112,6 +113,9 @@ static void LoadMod()
     g_mod.full = lstrcmpiA(size.c_str(), "screen") && lstrcmpiA(size.c_str(), "window");
     g_mod.quality = IniInt(g_modIni, s, "screenshotquality", 95);
     lstrcpynA(g_mod.key, IniGet(g_modIni, s, "screenshotkey", "F9").c_str(), sizeof(g_mod.key));
+    lstrcpynA(g_mod.menuKey, IniGet(g_modIni, s, "menukey", "F8").c_str(), sizeof(g_mod.menuKey));
+    g_mod.borderless = IniInt(g_modIni, s, "borderless", 0) != 0;
+    g_mod.stats = IniInt(g_modIni, s, "stats", 0) != 0;
     lstrcpynA(g_mod.dir, IniGet(g_modIni, s, "screenshotdir", "").c_str(), sizeof(g_mod.dir));
 }
 
@@ -131,6 +135,9 @@ static void SaveMod()
     IniSet(g_modIni, s, "screenshotsize", g_mod.full ? "full" : "screen");
     IniSetInt(g_modIni, s, "screenshotquality", g_mod.quality);
     IniSet(g_modIni, s, "screenshotkey", g_mod.key);
+    IniSet(g_modIni, s, "menukey", g_mod.menuKey);
+    IniSetInt(g_modIni, s, "borderless", g_mod.borderless ? 1 : 0);
+    IniSetInt(g_modIni, s, "stats", g_mod.stats ? 1 : 0);
     IniSet(g_modIni, s, "screenshotdir", g_mod.dir);
 }
 
@@ -531,6 +538,77 @@ static void OpenInput(const std::string& title, const std::string& text, const c
     lstrcpynA(g_dialog.buf, value, sizeof(g_dialog.buf));
 }
 
+// Key capture: the next key pressed (WndProc) becomes the setting; Esc cancels.
+static std::function<void(UINT)> g_capture;
+
+static void CaptureKey(const char* title, char* target, int size, const char* other, const char* otherName)
+{
+    std::string t = title;
+    OpenDialog(t, "Press the new key. Esc cancels.", {{"CANCEL", []() { g_capture = nullptr; }}});
+    g_capture = [target, size, other, otherName, t](UINT vk) {
+        char name[16];
+        KeyToName(vk, name);
+        if (!lstrcmpiA(name, other)) {
+            Status(true, "%s is already the %s.", name, otherName);
+        } else {
+            lstrcpynA(target, name, size);
+            SaveMod();
+            Status(false, "%s: %s", t.c_str(), name);
+        }
+        g_capture = nullptr;
+        g_dialog.open = false;
+    };
+}
+
+// The screenshot folder as the mod resolves it (empty: the Binaries folder; relative: from there).
+static std::string ShotFolder()
+{
+    if (!g_mod.dir[0]) return g_bin;
+    char raw[MAX_PATH], full[MAX_PATH];
+    ExpandEnvironmentStringsA(g_mod.dir, raw, MAX_PATH);
+    bool absolute = (raw[0] && raw[1] == ':') || (raw[0] == '\\' && raw[1] == '\\');
+    std::string path = absolute ? std::string(raw) : g_bin + raw;
+    GetFullPathNameA(path.c_str(), MAX_PATH, full, nullptr);
+    return full;
+}
+
+// Windows' folder picker, starting at the current folder; true with the choice in `out`.
+static bool BrowseFolder(HWND owner, std::string* out)
+{
+    HRESULT co = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
+    IFileOpenDialog* dlg = nullptr;
+    bool ok = false;
+    if (SUCCEEDED(CoCreateInstance(CLSID_FileOpenDialog, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&dlg)))) {
+        DWORD opts = 0;
+        dlg->GetOptions(&opts);
+        dlg->SetOptions(opts | FOS_PICKFOLDERS | FOS_FORCEFILESYSTEM);
+        dlg->SetTitle(L"Screenshot folder");
+        wchar_t start[MAX_PATH];
+        MultiByteToWideChar(CP_ACP, 0, ShotFolder().c_str(), -1, start, MAX_PATH);
+        IShellItem* item = nullptr;
+        if (SUCCEEDED(SHCreateItemFromParsingName(start, nullptr, IID_PPV_ARGS(&item)))) {
+            dlg->SetFolder(item);
+            item->Release();
+        }
+        if (SUCCEEDED(dlg->Show(owner)) && SUCCEEDED(dlg->GetResult(&item))) {
+            wchar_t* path = nullptr;
+            if (SUCCEEDED(item->GetDisplayName(SIGDN_FILESYSPATH, &path))) {
+                char a[MAX_PATH];
+                WideCharToMultiByte(CP_ACP, 0, path, -1, a, MAX_PATH, nullptr, nullptr);
+                *out = a;
+                ok = true;
+                CoTaskMemFree(path);
+            }
+            item->Release();
+        }
+        dlg->Release();
+    }
+    if (SUCCEEDED(co)) CoUninitialize();
+    return ok;
+}
+
+static HWND g_hwnd;
+
 static bool g_running;
 static bool g_startNew, g_startContinue;
 static int g_difficulty;
@@ -634,9 +712,11 @@ static std::vector<Row> BuildRows()
         rows.push_back({"AIM FOV", g_mod.aimFov ? std::to_string(g_mod.aimFov) : "DEFAULT", "AIM FOV",
                         "How far aiming zooms in, 30 to 120 (the game uses 40). Sniper scopes keep their zoom.",
                         ch([](int d) { StepFov(g_mod.aimFov, d, 30, 120, 40); }), nullptr});
-        static const char* kLens[] = {"OFF", "AUTO", "PANINI", "STEREOGRAPHIC", "FISHEYE"};
-        rows.push_back({"LENS", kLens[g_mod.lens % 5], "LENS", "Wide FOVs without stretched edges. Auto: straight up to 90, Panini by 160.",
-                        ch([](int d) { Cycle(g_mod.lens, d, 5); }), nullptr});
+        static const char* kLens[] = {"OFF", "AUTO", "PANINI", "STEREOGRAPHIC", "FISHEYE", "FISHEYE CIRCLE"};
+        rows.push_back({"LENS", kLens[g_mod.lens % 6], "LENS",
+                        g_mod.lens == 5 ? "The fisheye zoomed out: at FOV 159 all that is rendered shows, as a circle."
+                                        : "Wide FOVs without stretched edges. Auto: straight up to 90, Panini by 160.",
+                        ch([](int d) { Cycle(g_mod.lens, d, 6); }), nullptr});
         int ss = 0;
         for (int i = 0; i < kSupersampleStepCount; ++i)
             if (fabsf(kSupersampleSteps[i] - g_mod.supersample) < fabsf(kSupersampleSteps[ss] - g_mod.supersample)) ss = i;
@@ -665,11 +745,8 @@ static std::vector<Row> BuildRows()
                         ch([](int) { g_mod.jpg = !g_mod.jpg; }), nullptr});
         rows.push_back({"SCREENSHOT SIZE", g_mod.full ? "FULL" : "SCREEN", "SCREENSHOTS", "Full: the supersampled size the game renders at. Screen: your screen's.",
                         ch([](int) { g_mod.full = !g_mod.full; }), nullptr});
-        rows.push_back({"SCREENSHOT KEY", Upper(g_mod.key), "SCREENSHOTS", "Enter to change: F1-F24, A-Z, 0-9, Num0-Num9, Home, End, PrintScreen...", nullptr, []() {
-            OpenInput("SCREENSHOT KEY", "Key name (avoid F8, the settings menu):", g_mod.key, [](const char* v) {
-                lstrcpynA(g_mod.key, v[0] ? v : "F9", sizeof(g_mod.key));
-                SaveMod();
-            });
+        rows.push_back({"SCREENSHOT KEY", Upper(g_mod.key), "SCREENSHOTS", "Enter, then press the key. Pick one the game does not use.", nullptr, []() {
+            CaptureKey("SCREENSHOT KEY", g_mod.key, sizeof(g_mod.key), g_mod.menuKey, "settings menu key");
         }});
         rows.push_back({"JPEG QUALITY", std::to_string(g_mod.quality), "SCREENSHOTS", "1 to 100. 95 is visually lossless.", ch([](int d) {
             g_mod.quality += d * (ImGui::GetIO().KeyShift ? 1 : 5);
@@ -678,11 +755,34 @@ static std::vector<Row> BuildRows()
         }), nullptr});
         std::string dir = g_mod.dir[0] ? g_mod.dir : "BINARIES FOLDER";
         if (dir.size() > 26) dir = "..." + dir.substr(dir.size() - 23);
-        rows.push_back({"SCREENSHOT FOLDER", dir, "SCREENSHOTS", "Enter to change. Empty: the Binaries folder. %USERPROFILE% and the like work.", nullptr, []() {
-            OpenInput("SCREENSHOT FOLDER", "Folder (created if missing; empty = the Binaries folder):", g_mod.dir, [](const char* v) {
-                lstrcpynA(g_mod.dir, v, sizeof(g_mod.dir));
-                SaveMod();
-            });
+        rows.push_back({"SCREENSHOT FOLDER", dir, "SCREENSHOTS", "Enter: browse, type or open it. Empty: the Binaries folder.", nullptr, []() {
+            OpenDialog("SCREENSHOT FOLDER", ShotFolder(), {
+                {"BROWSE", []() {
+                    std::string chosen;
+                    if (BrowseFolder(g_hwnd, &chosen)) {
+                        lstrcpynA(g_mod.dir, chosen.c_str(), sizeof(g_mod.dir));
+                        SaveMod();
+                        Status(false, "Screenshots go to %s", chosen.c_str());
+                    }
+                }},
+                {"TYPE", []() {
+                    OpenInput("SCREENSHOT FOLDER", "Folder (created if missing; empty = the Binaries folder; %USERPROFILE% and the like work):",
+                              g_mod.dir, [](const char* v) {
+                                  lstrcpynA(g_mod.dir, v, sizeof(g_mod.dir));
+                                  SaveMod();
+                              });
+                }},
+                {"OPEN", []() {
+                    std::string f = ShotFolder();
+                    SHCreateDirectoryExA(nullptr, f.c_str(), nullptr);
+                    ShellExecuteA(g_hwnd, "open", f.c_str(), nullptr, nullptr, SW_SHOWNORMAL);
+                }},
+                {"CANCEL", nullptr}});
+        }});
+        rows.push_back({"STATS WINDOW", OnOff(g_mod.stats), "STATS", "Lens, supersampling and frame rate in a corner of the game. Drag it in the F8 menu.",
+                        ch([](int) { g_mod.stats = !g_mod.stats; }), nullptr});
+        rows.push_back({"SETTINGS MENU KEY", Upper(g_mod.menuKey), "MENU KEY", "Enter, then press the key that opens the settings menu in game.", nullptr, []() {
+            CaptureKey("SETTINGS MENU KEY", g_mod.menuKey, sizeof(g_mod.menuKey), g_mod.key, "screenshot key");
         }});
         rows.push_back({"INTRO VIDEOS", g_mod.skipIntros ? "SKIP" : "PLAY", "INTRO VIDEOS", "The ESRB, Epic and Microsoft videos at startup. Loading screens still play.",
                         ch([](int) { g_mod.skipIntros = !g_mod.skipIntros; }), nullptr});
@@ -705,7 +805,19 @@ static std::vector<Row> BuildRows()
             bool* p = &v;
             rows.push_back({label, OnOff(v), title, desc, ch([p](int) { *p = !*p; }), nullptr});
         };
-        flag("FULLSCREEN", g_game.fullscreen, "FULLSCREEN", "Supersampling needs fullscreen.");
+        static const char* kDisplay[] = {"FULLSCREEN", "WINDOW", "BORDERLESS WINDOW"};
+        static const char* kDisplayDesc[] = {"The game takes over the display at the resolution above.",
+                                             "A window with a frame and title bar.",
+                                             "A window without frame, centred on the monitor (black around it if smaller)."};
+        int display = g_game.fullscreen ? 0 : g_mod.borderless ? 2 : 1;
+        rows.push_back({"DISPLAY MODE", kDisplay[display], "DISPLAY MODE", kDisplayDesc[display], [](int d) {
+            int k = g_game.fullscreen ? 0 : g_mod.borderless ? 2 : 1;
+            Cycle(k, d, 3);
+            g_game.fullscreen = k == 0;
+            if (k) g_mod.borderless = k == 2;
+            SaveGame();
+            SaveMod();
+        }, nullptr});
         flag("VSYNC", g_game.vsync, "VSYNC", "Waits for the display's refresh: no tearing.");
         flag("DIRECTX 10", g_game.d3d10, "DIRECTX 10", "The mod's menu, lens, supersampling and screenshots need DirectX 10.");
         static const int kMsaa[] = {1, 2, 4, 8};
@@ -961,6 +1073,20 @@ static void ResetDevice()
 
 static LRESULT WINAPI WndProc(HWND h, UINT msg, WPARAM w, LPARAM l)
 {
+    // A key being captured (CaptureKey): its first press, not Enter's repeat or a held key.
+    if (g_capture && (msg == WM_KEYDOWN || msg == WM_SYSKEYDOWN) && !(l & 0x40000000)) {
+        UINT vk = (UINT)w;
+        if (vk == VK_ESCAPE) {
+            g_capture = nullptr;
+            g_dialog.open = false;
+            return 0;
+        }
+        if (vk != VK_RETURN && vk != VK_SHIFT && vk != VK_CONTROL && vk != VK_MENU && vk != VK_LWIN && vk != VK_RWIN) {
+            std::function<void(UINT)> f = g_capture;
+            f(vk);
+            return 0;
+        }
+    }
     if (ImGui_ImplWin32_WndProcHandler(h, msg, w, l)) return 1;
     if (msg == WM_SIZE && w != SIZE_MINIMIZED) {
         g_resizeW = LOWORD(l);
@@ -1033,6 +1159,7 @@ int WINAPI WinMain(HINSTANCE inst, HINSTANCE, LPSTR cmdLine, int)
     HWND hwnd = CreateWindowExA(0, wc.lpszClassName, "ROWE for Gears of War (2007) - launcher", WS_OVERLAPPEDWINDOW,
                                 work.left + (work.right - work.left - ww) / 2, work.top + (work.bottom - work.top - wh) / 2, ww, wh,
                                 nullptr, nullptr, inst, nullptr);
+    g_hwnd = hwnd;
     BOOL dark = TRUE;
     DwmSetWindowAttribute(hwnd, 20, &dark, sizeof(dark));  // DWMWA_USE_IMMERSIVE_DARK_MODE
 

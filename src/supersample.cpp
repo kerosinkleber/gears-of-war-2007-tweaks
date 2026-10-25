@@ -120,13 +120,22 @@ static UINT g_viewportFullscreen;
 // FWindowsViewport::Resize: every viewport size change comes through here (startup, the game's
 // resolution option, our runtime switch). Records the native size and passes the virtual size on
 // while supersampling is on.
+static bool ScaledClientSize(UINT* x, UINT* y);
+
 static bool g_inWindowedResize;  // HookAdjustWindowRect maps the virtual client size to native
+static bool g_inWindowedViewportResize;  // any windowed Resize (borderless.cpp)
+
+bool SupersampleInWindowedResize() { return g_inWindowedViewportResize; }
+bool SupersampleViewportWindowed() { return g_viewport && !g_viewportFullscreen; }
 
 static void __fastcall HookResize(void* self, void*, UINT x, UINT y, UINT fullscreen, INT posX, INT posY)
 {
     HookConfigOnce();
     g_viewport = self;
     g_viewportFullscreen = fullscreen;
+    // In a window the engine may ask for its client size as GetClientRect reports it, scaled up
+    // (after the window's size changed): that is the window's real size.
+    if (g_active && !fullscreen && !(x == g_virtW && y == g_virtH)) ScaledClientSize(&x, &y);
     if (!(g_active && x == g_virtW && y == g_virtH)) {
         // A real (native) size request; remember it so supersampling can be switched later.
         UINT dw, dh;
@@ -156,7 +165,9 @@ static void __fastcall HookResize(void* self, void*, UINT x, UINT y, UINT fullsc
         posX = ((INT)GetSystemMetrics(SM_CXSCREEN) - (INT)g_nativeW) / 6;
         posY = ((INT)GetSystemMetrics(SM_CYSCREEN) - (INT)g_nativeH) / 6;
     }
+    g_inWindowedViewportResize = !fullscreen;
     g_origResize(self, x, y, fullscreen, posX, posY);
+    g_inWindowedViewportResize = false;
     g_inWindowedResize = false;
 }
 
@@ -183,6 +194,13 @@ static LRESULT CALLBACK SupersampleWndProc(HWND h, UINT msg, WPARAM w, LPARAM l)
 }
 
 float SupersampleSetting() { return g_factor; }
+
+// Runs the viewport's Resize again at the same size (borderless.cpp, after a change of style).
+void SupersampleResizeViewport()
+{
+    g_pendingFactor = g_factor;
+    if (g_window && g_origWndProc) PostMessageW(g_window, kApplyMessage, 0, 0);
+}
 
 // Saves the factor and applies it right away.
 void SupersampleSetFactor(float factor)
@@ -311,8 +329,21 @@ static BOOL WINAPI HookClientToScreen(HWND h, LPPOINT p)
     return g_origClientToScreen(h, p);
 }
 
+// A size equal to the game window's real client size scaled up (as HookGetClientRect reports
+// it) becomes that real size.
+static bool ScaledClientSize(UINT* x, UINT* y)
+{
+    RECT rc;
+    if (!g_window || !g_origGetClientRect || !g_origGetClientRect(g_window, &rc) || !g_nativeW || !g_nativeH) return false;
+    UINT w = rc.right - rc.left, h = rc.bottom - rc.top;
+    if (!w || !h || *x != (UINT)MulDiv(w, g_virtW, g_nativeW) || *y != (UINT)MulDiv(h, g_virtH, g_nativeH)) return false;
+    *x = w;
+    *y = h;
+    return true;
+}
+
 // Windowed: Resize computes the window's size from the client size it is given (virtual); the
-// window itself stays at the native size.
+// window itself stays at the native size. A borderless window (borderless.cpp) gets no frame.
 typedef BOOL (WINAPI* PFN_AdjustWindowRect)(LPRECT, DWORD, BOOL);
 static PFN_AdjustWindowRect g_origAdjustWindowRect;
 
@@ -321,6 +352,10 @@ static BOOL WINAPI HookAdjustWindowRect(LPRECT rc, DWORD style, BOOL menu)
     if (g_inWindowedResize && rc && (UINT)(rc->right - rc->left) == g_virtW && (UINT)(rc->bottom - rc->top) == g_virtH) {
         rc->right = rc->left + g_nativeW;
         rc->bottom = rc->top + g_nativeH;
+    }
+    if (g_inWindowedViewportResize && BorderlessGet()) {
+        style = WS_POPUP;
+        menu = FALSE;
     }
     return g_origAdjustWindowRect(rc, style, menu);
 }

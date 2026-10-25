@@ -81,6 +81,9 @@ static BOOL WINAPI HookClipCursor(const RECT* rc)
 {
     g_engineClips = rc != nullptr;
     if (rc) g_engineRect = *rc;
+    // Background mode tells the engine it is in front, so it would confine the user's cursor
+    // while they work elsewhere: no clip unless the game really is in front.
+    if (BackgroundEnabled() && !GameInFront()) return g_origClipCursor(nullptr);
     RECT want;
     bool clip = g_mode != kMouseTrapOff && GameInFront() ? TrapClip(&want) : EngineClip(&want);
     return g_origClipCursor(clip ? &want : nullptr);

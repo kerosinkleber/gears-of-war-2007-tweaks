@@ -8,8 +8,9 @@ cbuffer Lens : register(b0)
     float tanHalfRender;  // tan(half of the engine's horizontal render FOV)
     float aspect;         // width / height
     float blend;          // mode 1: 0 = rectilinear, 1 = Panini
-    int mode;             // 1 = auto (rectilinear -> Panini), 2 = Panini, 3 = stereographic, 4 = fisheye
-    float3 pad;
+    int mode;             // 1 = auto (rectilinear -> Panini), 2 = Panini, 3 = stereographic, 4/5 = fisheye
+    float circle;         // mode 5: the circle's half-angle (radians); black beyond it
+    float2 pad;
 };
 
 Texture2D Scene : register(t0);
@@ -68,12 +69,13 @@ float4 PSMain(VSOut i) : SV_Target
 {
     float2 s = float2(i.uv.x * 2 - 1, (1 - i.uv.y * 2) / aspect);
     float3 ray;
-    if (mode == 4) ray = RayFisheye(s);
+    if (mode >= 4) ray = RayFisheye(s);
     else if (mode == 3) ray = RayStereographic(s);
     else if (mode == 2) ray = RayPanini(s);
     else ray = normalize(lerp(RayRectilinear(s), RayPanini(s), blend));
 
     if (ray.z <= 1e-4) return float4(0, 0, 0, 1);
+    if (circle > 0 && length(s) * halfFov > circle) return float4(0, 0, 0, 1);  // outside the full circle
     float2 r = ray.xy / ray.z / float2(tanHalfRender, tanHalfRender / aspect);
     if (abs(r.x) > 1.001 || abs(r.y) > 1.001) return float4(0, 0, 0, 1);
     return Scene.SampleLevel(Linear, float2(0.5 + 0.5 * r.x, 0.5 - 0.5 * r.y), 0);

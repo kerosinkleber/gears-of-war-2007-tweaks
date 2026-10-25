@@ -32,8 +32,8 @@ rem uses stb_truetype from third_party\imgui and the font from third_party\fonts
 cl /nologo /O2 /MT /EHsc /W3 /D_CRT_SECURE_NO_WARNINGS /LD /I"%OUT%" /I"%~dp0third_party\imgui" /I"%~dp0third_party\fonts" /Fo"%OUT%\\" /Fe"%OUT%\d3d9.dll" ^
   "%SRC%\dllmain.cpp" "%SRC%\detour.cpp" "%SRC%\crashlog.cpp" "%SRC%\dx10hook.cpp" "%SRC%\fov.cpp" ^
   "%SRC%\lens.cpp" "%SRC%\shoulder.cpp" "%SRC%\supersample.cpp" "%SRC%\overlay.cpp" "%SRC%\intros.cpp" ^
-  "%SRC%\screenshot.cpp" "%SRC%\mousetrap.cpp" "%SRC%\launch.cpp" "%SRC%\background.cpp" "%SRC%\gamecmd.cpp" "%SRC%\textcapture.cpp" "%SRC%\fovtrace.cpp" ^
-  /link /EXPORT:Direct3DCreate9 user32.lib kernel32.lib d3d10.lib ole32.lib oleaut32.lib windowscodecs.lib || exit /b 1
+  "%SRC%\screenshot.cpp" "%SRC%\mousetrap.cpp" "%SRC%\launch.cpp" "%SRC%\background.cpp" "%SRC%\gamecmd.cpp" "%SRC%\textcapture.cpp" "%SRC%\fovtrace.cpp" "%SRC%\borderless.cpp" "%SRC%\dinput.cpp" ^
+  /link /EXPORT:Direct3DCreate9 user32.lib gdi32.lib kernel32.lib d3d10.lib ole32.lib oleaut32.lib windowscodecs.lib || exit /b 1
 
 cl /nologo /O2 /MT /EHsc /W3 /D_CRT_SECURE_NO_WARNINGS /Fo"%OUT%\\" /Fe"%OUT%\harness.exe" "%~dp0test\harness.cpp" ^
   /link user32.lib gdi32.lib d3d10.lib || exit /b 1

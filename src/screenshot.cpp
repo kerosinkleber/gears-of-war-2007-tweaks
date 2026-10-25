@@ -17,6 +17,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "rowe.h"
+#include "keynames.h"
 
 // ---- settings ------------------------------------------------------------------------------
 
@@ -27,28 +28,6 @@ static bool g_jpg = true;
 static int g_quality = 95;
 static bool g_full = true;
 
-// Key names: F1-F24, A-Z, 0-9, Num0-Num9, a few named keys, or a virtual key code (0x7B).
-static UINT ParseKey(const char* s)
-{
-    static const struct { const char* name; UINT vk; } kNamed[] = {
-        {"Home", VK_HOME}, {"End", VK_END}, {"Insert", VK_INSERT}, {"Delete", VK_DELETE},
-        {"PageUp", VK_PRIOR}, {"PageDown", VK_NEXT}, {"Pause", VK_PAUSE}, {"ScrollLock", VK_SCROLL},
-        {"PrintScreen", VK_SNAPSHOT},
-    };
-    for (auto& k : kNamed)
-        if (lstrcmpiA(s, k.name) == 0) return k.vk;
-    if ((s[0] == 'F' || s[0] == 'f') && s[1] >= '1' && s[1] <= '9') {
-        int n = atoi(s + 1);
-        if (n >= 1 && n <= 24) return VK_F1 + n - 1;
-    }
-    if (_strnicmp(s, "Num", 3) == 0 && s[3] >= '0' && s[3] <= '9' && !s[4]) return VK_NUMPAD0 + (s[3] - '0');
-    if (s[0] == '0' && (s[1] == 'x' || s[1] == 'X')) return (UINT)strtoul(s, nullptr, 16) & 0xFF;
-    if (s[0] && !s[1]) {
-        char c = s[0] >= 'a' && s[0] <= 'z' ? s[0] - 32 : s[0];
-        if ((c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9')) return (UINT)c;
-    }
-    return 0;
-}
 
 static void IniPath(char* out) { wsprintfA(out, "%srowe.ini", ModDir()); }
 
@@ -58,7 +37,7 @@ void ScreenshotInit()
     char path[MAX_PATH], val[64];
     IniPath(path);
     GetPrivateProfileStringA("rowe", "screenshotkey", "F9", val, sizeof(val), path);
-    g_key = ParseKey(val);
+    g_key = KeyFromName(val);
     if (!g_key) {
         Log("screenshot: unknown key '%s', using F9", val);
         g_key = VK_F9;
@@ -486,7 +465,9 @@ void ScreenshotFrame(IDXGISwapChain* swap, bool focused)
     char path[MAX_PATH];
     if (wantUser) {
         // The supersampled frame the engine rendered, or the real (screen-size) back buffer.
-        if (!(g_full && SupersampleOwns(swap) && SUCCEEDED(SupersampleGetBuffer(__uuidof(ID3D10Texture2D), (void**)&src))))
+        if (g_full && SupersampleOwns(swap) && SUCCEEDED(SupersampleGetBuffer(__uuidof(ID3D10Texture2D), (void**)&src)))
+            OverlayStatsInto(src);  // (on the screen-size frame it is drawn already)
+        else
             SwapGetRealBuffer(swap, &src);
         char dir[MAX_PATH], stamp[32];
         Folder(dir);

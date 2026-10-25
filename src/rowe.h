@@ -78,7 +78,7 @@ HRESULT SwapGetRealBuffer(IDXGISwapChain* swap, ID3D10Texture2D** out);  // bypa
 void SupersampleInit();          // reads rowe.ini
 void SupersampleEarlyInstall();  // DllMain: redirects the engine's CreateDXGIFactory
 void SupersampleInstall();       // engine hooks (viewport size, display modes, mouse)
-float SupersampleSetting();      // configured multiplier (applies in fullscreen)
+float SupersampleSetting();      // configured multiplier
 void SupersampleSetFactor(float factor);  // saves and applies at runtime
 void SupersampleOnPresent(IDXGISwapChain* swap, HWND window);
 // Swap chain glue for dx10hook.cpp: while supersampling, the engine's swap chain is "virtual".

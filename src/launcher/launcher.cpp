@@ -645,8 +645,8 @@ static std::vector<Row> BuildRows()
         else sprintf_s(ssv, "%gX", kSupersampleSteps[ss]);
         int vw, vh;
         VirtualSize(kSupersampleSteps[ss], &vw, &vh);
-        if (ss == 0) lstrcpyA(ssd, "Renders more pixels and averages them down. Fullscreen only.");
-        else sprintf_s(ssd, "Renders %d x %d and averages it down to %d x %d. Fullscreen only.", vw, vh, g_game.resX, g_game.resY);
+        if (ss == 0) lstrcpyA(ssd, "Renders more pixels and averages them down: smoother edges, sharper detail.");
+        else sprintf_s(ssd, "Renders %d x %d and averages it down to %d x %d.", vw, vh, g_game.resX, g_game.resY);
         rows.push_back({"SUPERSAMPLING", ssv, "SUPERSAMPLING", ssd, ch([](int d) {
             int i = 0;
             for (int k = 0; k < kSupersampleStepCount; ++k)

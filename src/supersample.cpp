@@ -1,8 +1,10 @@
 // Supersampling: the engine renders at a "virtual" resolution larger than the display and the
 // mod averages it down to the native back buffer at Present.
 //
-// How the engine is made to render bigger (fullscreen only):
+// How the engine is made to render bigger (fullscreen and windowed):
 //  - FWindowsViewport::Resize (0x00E6F080) gets the native size and is handed the virtual one.
+//    In a window it sizes the window from that (AdjustWindowRect), which is given the native
+//    size instead, so the window keeps its size.
 //  - The D3D10 RHI's GetSupportedResolution (0x0113C540) would snap that to a real display
 //    mode; it is skipped for the virtual size.
 //  - The engine's CreateDXGIFactory (delay-load IAT slot 0x01B9DF34) is redirected so that
@@ -117,7 +119,9 @@ static UINT g_viewportFullscreen;
 
 // FWindowsViewport::Resize: every viewport size change comes through here (startup, the game's
 // resolution option, our runtime switch). Records the native size and passes the virtual size on
-// while supersampling is on (fullscreen only).
+// while supersampling is on.
+static bool g_inWindowedResize;  // HookAdjustWindowRect maps the virtual client size to native
+
 static void __fastcall HookResize(void* self, void*, UINT x, UINT y, UINT fullscreen, INT posX, INT posY)
 {
     HookConfigOnce();
@@ -132,7 +136,7 @@ static void __fastcall HookResize(void* self, void*, UINT x, UINT y, UINT fullsc
         g_nativeW = x;
         g_nativeH = y;
     }
-    if (g_factor > 1.01f && fullscreen) {
+    if (g_factor > 1.01f) {
         ComputeVirtual();
         g_active = true;
         Log("supersample: viewport %ux%u -> %ux%u", g_nativeW, g_nativeH, g_virtW, g_virtH);
@@ -144,7 +148,16 @@ static void __fastcall HookResize(void* self, void*, UINT x, UINT y, UINT fullsc
         x = g_nativeW;
         y = g_nativeH;
     }
+    g_inWindowedResize = g_active && !fullscreen;
+    // A window that does not exist yet is placed at (screen - size) / 6, which for the virtual
+    // size lies far off the screen: give it the place the native size gets.
+    HWND* window = (HWND*)((BYTE*)self + 0x5C);
+    if (g_inWindowedResize && posX == -1 && posY == -1 && !IsBadReadPtr(window, 4) && !IsWindow(*window)) {
+        posX = ((INT)GetSystemMetrics(SM_CXSCREEN) - (INT)g_nativeW) / 6;
+        posY = ((INT)GetSystemMetrics(SM_CYSCREEN) - (INT)g_nativeH) / 6;
+    }
     g_origResize(self, x, y, fullscreen, posX, posY);
+    g_inWindowedResize = false;
 }
 
 // ---- changing the factor at runtime -----------------------------------------------------------
@@ -171,7 +184,7 @@ static LRESULT CALLBACK SupersampleWndProc(HWND h, UINT msg, WPARAM w, LPARAM l)
 
 float SupersampleSetting() { return g_factor; }
 
-// Saves the factor and applies it right away (fullscreen only; windowed stays native).
+// Saves the factor and applies it right away.
 void SupersampleSetFactor(float factor)
 {
     if (factor < 1.f) factor = 1.f;
@@ -296,6 +309,20 @@ static BOOL WINAPI HookClientToScreen(HWND h, LPPOINT p)
         p->y = MulDiv(p->y, g_nativeH, g_virtH);
     }
     return g_origClientToScreen(h, p);
+}
+
+// Windowed: Resize computes the window's size from the client size it is given (virtual); the
+// window itself stays at the native size.
+typedef BOOL (WINAPI* PFN_AdjustWindowRect)(LPRECT, DWORD, BOOL);
+static PFN_AdjustWindowRect g_origAdjustWindowRect;
+
+static BOOL WINAPI HookAdjustWindowRect(LPRECT rc, DWORD style, BOOL menu)
+{
+    if (g_inWindowedResize && rc && (UINT)(rc->right - rc->left) == g_virtW && (UINT)(rc->bottom - rc->top) == g_virtH) {
+        rc->right = rc->left + g_nativeW;
+        rc->bottom = rc->top + g_nativeH;
+    }
+    return g_origAdjustWindowRect(rc, style, menu);
 }
 
 static BOOL WINAPI HookGetClientRect(HWND h, LPRECT rc)
@@ -657,7 +684,8 @@ void SupersampleInstall()
     Log("supersample: hud hooks %d %d %d", !!g_origCanvasUpdate, !!g_origPushTransform, !!g_origUiPushTransform);
     g_origClientToScreen = (PFN_PtFn)PatchExeImport("user32.dll", "ClientToScreen", (void*)HookClientToScreen);
     g_origGetClientRect = (PFN_GetClientRect)PatchExeImport("user32.dll", "GetClientRect", (void*)HookGetClientRect);
-    Log("supersample: window hooks %d %d", !!g_origClientToScreen, !!g_origGetClientRect);
+    g_origAdjustWindowRect = (PFN_AdjustWindowRect)PatchExeImport("user32.dll", "AdjustWindowRect", (void*)HookAdjustWindowRect);
+    Log("supersample: window hooks %d %d %d", !!g_origClientToScreen, !!g_origGetClientRect, !!g_origAdjustWindowRect);
 }
 
 // ---- virtual back buffer + resolve -----------------------------------------------------------

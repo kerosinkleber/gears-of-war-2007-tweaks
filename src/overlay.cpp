@@ -237,8 +237,7 @@ static void FillRow(int row, Row& r)
         if (g_ssPending > 0) lstrcpyA(r.desc, "Applying...");
         else if (SupersampleGetSizes(&nw, &nh, &vw, &vh))
             wsprintfA(r.desc, "Renders %u x %u and averages it down to %u x %u.", vw, vh, nw, nh);
-        else if (f > 1.01f) lstrcpyA(r.desc, "Fullscreen only: takes effect when the game runs fullscreen.");
-        else lstrcpyA(r.desc, "Renders more pixels and averages them down. Fullscreen only.");
+        else lstrcpyA(r.desc, "Renders more pixels and averages them down: smoother edges, sharper detail.");
         break;
     }
     case kRowShoulder:

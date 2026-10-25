@@ -73,7 +73,7 @@ Settings are saved to `rowe.ini` next to the DLL the first time one is changed:
 | `fov` | `0` = game default, otherwise 60–159. This is the FOV of the normal camera (the game uses 80); wider camera modes get the same increase up to 159°, and aiming is set by `aimfov`. | `0` |
 | `aimfov` | `0` = game default (40), otherwise 30–120 (at most the `fov` value): the FOV while aiming. Camera modes zoomed in further than aiming (sniper scopes, 25° and below) keep their FOV. | `0` |
 | `lens` | `0` off, `1` auto (rectilinear up to 90°, blending into Panini by 160°), `2` Panini, `3` stereographic, `4` fisheye (equidistant: angles spread evenly from the centre; above about 140° the corners beyond the rendered view stay black, like a fisheye lens' vignette) | `1` |
-| `supersample` | Pixel-count multiplier, 1–10 (`4` = twice the width and height). Fullscreen only. The rendered size is capped at 8192 pixels per side (the DirectX 10 limit), at 2560×1440 reached at about 10×. | `1` |
+| `supersample` | Pixel-count multiplier, 1–10 (`4` = twice the width and height), fullscreen or windowed. The rendered size is capped at 8192 pixels per side (the DirectX 10 limit), at 2560×1440 reached at about 10×. | `1` |
 | `shoulder` | `right` or `left`: the shoulder the camera starts on | `right` |
 | `mousetrap` | `0` off (the game's own behaviour), `1` keep the cursor on the game's monitor during gameplay and free it in menus, pause, loading screens and cutscenes, `2` keep it there in menus too. Only while the game is in front; switching to another program frees the cursor. | `0` |
 | `skipintros` | `1` skip the intro videos, `0` play them (applies at the next start) | `1` |

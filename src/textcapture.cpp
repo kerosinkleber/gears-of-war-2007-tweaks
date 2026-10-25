@@ -1,9 +1,9 @@
 // Records the text the engine draws each frame (DrawString at 0x005605A0, used by both the
 // canvas printing and the UI string renderer), so tools can read what is on screen — menu
-// entries, prompts, subtitles — from gowfov_state.txt instead of taking screenshots.
+// entries, prompts, subtitles — from rowe_state.txt instead of taking screenshots.
 #include <windows.h>
 #include <stdio.h>
-#include "gowfov.h"
+#include "rowe.h"
 
 struct TextEntry { float x, y; float color[4]; float scaleX, scaleY; DWORD caller; wchar_t text[80]; };
 

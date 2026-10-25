@@ -1,4 +1,4 @@
-// gowfov_launcher.exe: set the mod's and the game's settings before the game starts, keep save
+// rowe_launcher.exe: set the mod's and the game's settings before the game starts, keep save
 // slots, and start the game straight into "continue" or a new campaign at a chosen difficulty.
 // It lives in the game's Binaries folder (next to Startup.exe and the mod's d3d9.dll) and is
 // drawn with Dear ImGui (third_party/imgui, MIT) on Direct3D 9 in the style of the game's own menus.
@@ -6,11 +6,11 @@
 // Save slots: Gears of War keeps its one campaign checkpoint in the player profile (with the
 // XLiveEmu GFWL replacement: Binaries\XLiveEmu\<profile>\Offline\Title1-3.dat, encrypted for the
 // Windows user), and a new campaign overwrites it. A slot is a copy of those files in
-// Binaries\gowfov_saves\<id>\ with a slot.ini (name, date). Restoring copies them back, so it also
+// Binaries\rowe_saves\<id>\ with a slot.ini (name, date). Restoring copies them back, so it also
 // brings back the profile's other contents from that time (options, unlocked chapters). Before a
 // new campaign or a restore the current files are kept as a slot unless a slot already has them.
 //
-// Starting: the launcher writes gowfov_launch.txt for the mod (launch.cpp), which walks the
+// Starting: the launcher writes rowe_launch.txt for the mod (launch.cpp), which walks the
 // game's menus once the title screen is up, then starts Startup.exe and closes.
 #include <windows.h>
 #include <d3d9.h>
@@ -31,11 +31,12 @@
 #include "backends/imgui_impl_dx9.h"
 #include "backends/imgui_impl_win32.h"
 #include "sharetechmono_ttf.h"
+#include "../migrate.h"
 
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 static std::string g_bin;       // the game's Binaries folder (this exe's), with trailing backslash
-static std::string g_modIni;    // gowfov.ini
+static std::string g_modIni;    // rowe.ini
 static std::string g_gameIni;   // WarEngineUserSettings.ini
 static std::string g_status;
 static bool g_statusError;
@@ -84,7 +85,7 @@ static void IniSetInt(const std::string& file, const char* section, const char* 
     IniSet(file, section, key, std::to_string(value));
 }
 
-// ---- the mod's settings (gowfov.ini; same keys and ranges as the F8 menu) --------------------
+// ---- the mod's settings (rowe.ini; same keys and ranges as the F8 menu) --------------------
 
 struct ModSettings {
     int fov, aimFov, lens, mouseTrap, quality;
@@ -98,7 +99,7 @@ static const int kSupersampleStepCount = sizeof(kSupersampleSteps) / sizeof(kSup
 
 static void LoadMod()
 {
-    const char* s = "gowfov";
+    const char* s = "rowe";
     g_mod.fov = IniInt(g_modIni, s, "fov", 0);
     g_mod.aimFov = IniInt(g_modIni, s, "aimfov", 0);
     g_mod.lens = IniInt(g_modIni, s, "lens", 1);
@@ -116,7 +117,7 @@ static void LoadMod()
 
 static void SaveMod()
 {
-    const char* s = "gowfov";
+    const char* s = "rowe";
     char ss[16];
     sprintf_s(ss, "%.2f", g_mod.supersample);
     IniSetInt(g_modIni, s, "fov", g_mod.fov);
@@ -229,7 +230,7 @@ struct Slot { std::string dir, name, saved; };
 static std::vector<Slot> g_slots;  // newest first
 static int g_slotSel = -1;
 
-static std::string SlotsRoot() { return g_bin + "gowfov_saves\\"; }
+static std::string SlotsRoot() { return g_bin + "rowe_saves\\"; }
 
 static void LoadSlots()
 {
@@ -360,7 +361,7 @@ static bool Launch(bool newCampaign, int difficulty)
     SaveMod();
     SaveGame();
     if (newCampaign && !SaveSlot("Kept before a new campaign", true)) return false;
-    std::string req = g_bin + "gowfov_launch.txt";
+    std::string req = g_bin + "rowe_launch.txt";
     IniSet(req, "launch", "action", newCampaign ? "new" : "continue");
     IniSet(req, "launch", "difficulty", newCampaign ? kDifficulties[difficulty] : "");
     STARTUPINFOA si = {sizeof(si)};
@@ -378,7 +379,7 @@ static bool Launch(bool newCampaign, int difficulty)
 
 // ---- look: Gears of War's own menus ----------------------------------------------------------
 // Drawn like the game's Main Menu: the title screen's artwork behind everything (saved by the mod
-// as gowfov_menubg.jpg on the first start; a dark red gradient until then), a spaced capital
+// as rowe_menubg.jpg on the first start; a dark red gradient until then), a spaced capital
 // heading, the entries as dark bars in a thin bracket frame with the highlighted one lit, a large
 // title and a line of text for the highlighted entry at the bottom right, and key hints at the
 // bottom left. Laid out in a 1280x720 design space scaled to the window.
@@ -437,7 +438,7 @@ static std::string Upper(std::string s)
 // The title screen's artwork, if the mod has saved it (WIC decode into a managed texture).
 static void LoadBackground()
 {
-    std::string path = g_bin + "gowfov_menubg.jpg";
+    std::string path = g_bin + "rowe_menubg.jpg";
     if (!Exists(path)) return;
     HRESULT co = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
     IWICImagingFactory* f = nullptr;
@@ -837,7 +838,7 @@ static void DrawLauncher()
 
     // Heading, as "MAIN MENU" in the game.
     Text(dl, 105, 60, kPageNames[g_page], 26, Rgba(1, 1, 1, 0.95f), 6);
-    Text(dl, 107, 96, "GEARS OF WAR (2007) TWEAKS", 12, Rgba(0.85f, 0.25f, 0.2f, 0.9f), 4);
+    Text(dl, 107, 96, "ROWE FOR GEARS OF WAR (2007)", 12, Rgba(0.85f, 0.25f, 0.2f, 0.9f), 4);
 
     std::vector<Row> rows = BuildRows();
     int& sel = g_sel[g_page];
@@ -991,11 +992,12 @@ int WINAPI WinMain(HINSTANCE inst, HINSTANCE, LPSTR cmdLine, int)
     *(strrchr(exe, '\\') + 1) = 0;
     g_bin = exe;
     if (!Exists(g_bin + "Startup.exe")) {
-        MessageBoxA(nullptr, "Put gowfov_launcher.exe into the game's Binaries folder (next to Startup.exe).",
-                    "Gears of War (2007) Tweaks", MB_ICONERROR);
+        MessageBoxA(nullptr, "Put rowe_launcher.exe into the game's Binaries folder (next to Startup.exe).",
+                    "ROWE for Gears of War (2007)", MB_ICONERROR);
         return 1;
     }
-    g_modIni = g_bin + "gowfov.ini";
+    MigrateGowfovFiles(g_bin.c_str());
+    g_modIni = g_bin + "rowe.ini";
     char docs[MAX_PATH] = "";
     SHGetFolderPathA(nullptr, CSIDL_PERSONAL, nullptr, 0, docs);
     g_gameIni = std::string(docs) + "\\My Games\\Gears of War for Windows\\WarGame\\Config\\WarEngineUserSettings.ini";
@@ -1006,12 +1008,12 @@ int WINAPI WinMain(HINSTANCE inst, HINSTANCE, LPSTR cmdLine, int)
     LoadSlots();
     if ((quickContinue || quickNew) && !GameRunning()) {
         if (Launch(quickNew, g_difficulty)) return 0;
-        MessageBoxA(nullptr, g_status.c_str(), "Gears of War (2007) Tweaks", MB_ICONERROR);
+        MessageBoxA(nullptr, g_status.c_str(), "ROWE for Gears of War (2007)", MB_ICONERROR);
     }
     if (!Exists(g_gameIni)) Status(true, "The game's settings file is missing: start the game once first");
     else if (!Exists(g_bin + "d3d9.dll")) Status(true, "The mod (d3d9.dll) is not in this folder");
 
-    WNDCLASSEXA wc = {sizeof(wc), CS_CLASSDC, WndProc, 0, 0, inst, nullptr, LoadCursor(nullptr, IDC_ARROW), nullptr, nullptr, "gowfov_launcher", nullptr};
+    WNDCLASSEXA wc = {sizeof(wc), CS_CLASSDC, WndProc, 0, 0, inst, nullptr, LoadCursor(nullptr, IDC_ARROW), nullptr, nullptr, "rowe_launcher", nullptr};
     HICON iconBig = nullptr, iconSmall = nullptr;
     ExtractIconExA((g_bin + "WarGame-G4WLive.exe").c_str(), 0, &iconBig, &iconSmall, 1);
     wc.hIcon = iconBig;
@@ -1028,7 +1030,7 @@ int WINAPI WinMain(HINSTANCE inst, HINSTANCE, LPSTR cmdLine, int)
     RECT wr = {0, 0, (LONG)(1280 * fit), (LONG)(720 * fit)};
     AdjustWindowRect(&wr, WS_OVERLAPPEDWINDOW, FALSE);
     int ww = wr.right - wr.left, wh = wr.bottom - wr.top;
-    HWND hwnd = CreateWindowExA(0, wc.lpszClassName, "Gears of War (2007) Tweaks - launcher", WS_OVERLAPPEDWINDOW,
+    HWND hwnd = CreateWindowExA(0, wc.lpszClassName, "ROWE for Gears of War (2007) - launcher", WS_OVERLAPPEDWINDOW,
                                 work.left + (work.right - work.left - ww) / 2, work.top + (work.bottom - work.top - wh) / 2, ww, wh,
                                 nullptr, nullptr, inst, nullptr);
     BOOL dark = TRUE;

@@ -2,17 +2,17 @@
 out/
 
 # Files the mod writes next to itself when run from this folder
-gowfov.ini
-gowfov.log
-gowfov_*.bmp
-gowfov_state.txt
-gowfov_state.tmp
-gowfov_cmd.txt
-gowfov_fovtrace.csv
+rowe.ini
+rowe.log
+rowe_*.bmp
+rowe_state.txt
+rowe_state.tmp
+rowe_cmd.txt
+rowe_fovtrace.csv
 *.req
-gowfov_launch.txt
-gowfov_saves/
-gowfov_menubg*.jpg
+rowe_launch.txt
+rowe_saves/
+rowe_menubg*.jpg
 
 # Editor and Visual Studio files
 .vs/

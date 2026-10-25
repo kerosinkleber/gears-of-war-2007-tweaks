@@ -1,4 +1,4 @@
-// Background mode (gowfov.ini: background=1): the game keeps running and accepts posted
+// Background mode (rowe.ini: background=1): the game keeps running and accepts posted
 // keyboard messages while its window is not in focus, so tools can drive it without stealing
 // the user's focus. Off by default; normal alt-tab pausing is unchanged unless enabled.
 //
@@ -10,7 +10,7 @@
 // which turns a posted key-down into a tap. Keys the tools hold (BackgroundSetKeyHeld) are
 // reported as down to the engine's GetKeyState/GetAsyncKeyState.
 #include <windows.h>
-#include "gowfov.h"
+#include "rowe.h"
 
 static bool g_enabled;
 static HWND g_window;
@@ -98,12 +98,12 @@ static LRESULT CALLBACK BackgroundWndProc(HWND h, UINT msg, WPARAM w, LPARAM l)
     return CallWindowProcW(g_origWndProc, h, msg, w, l);
 }
 
-// Reads background= from gowfov.ini (only at startup).
+// Reads background= from rowe.ini (only at startup).
 void BackgroundInit()
 {
     char path[MAX_PATH];
-    wsprintfA(path, "%sgowfov.ini", ModDir());
-    g_enabled = GetPrivateProfileIntA("gowfov", "background", 0, path) != 0;
+    wsprintfA(path, "%srowe.ini", ModDir());
+    g_enabled = GetPrivateProfileIntA("rowe", "background", 0, path) != 0;
 }
 
 bool BackgroundEnabled() { return g_enabled; }

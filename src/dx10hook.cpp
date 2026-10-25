@@ -3,7 +3,7 @@
 // chain when supersampling creates it, in case that happens first).
 #include <windows.h>
 #include <d3d10.h>
-#include "gowfov.h"
+#include "rowe.h"
 
 typedef HRESULT (STDMETHODCALLTYPE* PFN_Present)(IDXGISwapChain*, UINT, UINT);
 typedef HRESULT (STDMETHODCALLTYPE* PFN_GetBuffer)(IDXGISwapChain*, UINT, REFIID, void**);
@@ -119,9 +119,9 @@ void Dx10HookInstall()
     WNDCLASSA wc = {};
     wc.lpfnWndProc = DefWindowProcA;
     wc.hInstance = GetModuleHandleA(nullptr);
-    wc.lpszClassName = "gowfov_dummy";
+    wc.lpszClassName = "rowe_dummy";
     RegisterClassA(&wc);
-    HWND hw = CreateWindowA("gowfov_dummy", "", WS_OVERLAPPED, 0, 0, 64, 64, nullptr, nullptr, wc.hInstance, nullptr);
+    HWND hw = CreateWindowA("rowe_dummy", "", WS_OVERLAPPED, 0, 0, 64, 64, nullptr, nullptr, wc.hInstance, nullptr);
 
     DXGI_SWAP_CHAIN_DESC sd = {};
     sd.BufferCount = 1;
@@ -145,5 +145,5 @@ void Dx10HookInstall()
         dev->Release();
     }
     if (hw) DestroyWindow(hw);
-    UnregisterClassA("gowfov_dummy", wc.hInstance);
+    UnregisterClassA("rowe_dummy", wc.hInstance);
 }

@@ -42,8 +42,8 @@ rem The launcher (settings, save slots, continue / new campaign), Dear ImGui on 
 set "IMGUI=%~dp0third_party\imgui"
 if not exist "%OUT%\launcher" mkdir "%OUT%\launcher"
 cl /nologo /O2 /MT /EHsc /W3 /std:c++17 /D_CRT_SECURE_NO_WARNINGS /DIMGUI_IMPL_WIN32_DISABLE_GAMEPAD /I"%IMGUI%" /I"%~dp0third_party\fonts" ^
-  /Fo"%OUT%\launcher\\" /Fe"%OUT%\gowfov_launcher.exe" "%SRC%\launcher\launcher.cpp" ^
+  /Fo"%OUT%\launcher\\" /Fe"%OUT%\rowe_launcher.exe" "%SRC%\launcher\launcher.cpp" ^
   "%IMGUI%\imgui.cpp" "%IMGUI%\imgui_draw.cpp" "%IMGUI%\imgui_tables.cpp" "%IMGUI%\imgui_widgets.cpp" ^
   "%IMGUI%\backends\imgui_impl_dx9.cpp" "%IMGUI%\backends\imgui_impl_win32.cpp" ^
   /link /SUBSYSTEM:WINDOWS user32.lib gdi32.lib kernel32.lib shell32.lib shlwapi.lib ole32.lib windowscodecs.lib d3d9.lib dwmapi.lib || exit /b 1
-echo Built %OUT%\gowfov_launcher.exe
+echo Built %OUT%\rowe_launcher.exe

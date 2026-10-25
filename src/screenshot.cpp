@@ -1,6 +1,6 @@
 // Screenshots.
 //
-// The screenshot key (gowfov.ini screenshotkey, default F9) saves the finished frame (HUD
+// The screenshot key (rowe.ini screenshotkey, default F9) saves the finished frame (HUD
 // included, before the settings menu is drawn) to screenshotdir, at the supersampled size
 // (screenshotsize=full, the frame the engine rendered before it is averaged down) or the
 // screen's, as JPEG or PNG (screenshotformat, screenshotquality), encoded by Windows' imaging
@@ -8,14 +8,14 @@
 // in the frame it is taken, read back over the next frames in strips (a staging copy polled
 // without waiting) and encoded on a worker thread.
 //
-// Tools: gowfov_shot.req saves the frame at the screen's size and gowfov_scene.req the 3D scene
-// before the HUD (from lens.cpp), both as gowfov_<kind>_<date>_<time>.png next to the DLL.
+// Tools: rowe_shot.req saves the frame at the screen's size and rowe_scene.req the 3D scene
+// before the HUD (from lens.cpp), both as rowe_<kind>_<date>_<time>.png next to the DLL.
 #include <windows.h>
 #include <d3d10.h>
 #include <wincodec.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include "gowfov.h"
+#include "rowe.h"
 
 // ---- settings ------------------------------------------------------------------------------
 
@@ -49,14 +49,14 @@ static UINT ParseKey(const char* s)
     return 0;
 }
 
-static void IniPath(char* out) { wsprintfA(out, "%sgowfov.ini", ModDir()); }
+static void IniPath(char* out) { wsprintfA(out, "%srowe.ini", ModDir()); }
 
-// Reads the screenshot settings from gowfov.ini (also used to reload them at runtime).
+// Reads the screenshot settings from rowe.ini (also used to reload them at runtime).
 void ScreenshotInit()
 {
     char path[MAX_PATH], val[64];
     IniPath(path);
-    GetPrivateProfileStringA("gowfov", "screenshotkey", "F9", val, sizeof(val), path);
+    GetPrivateProfileStringA("rowe", "screenshotkey", "F9", val, sizeof(val), path);
     g_key = ParseKey(val);
     if (!g_key) {
         Log("screenshot: unknown key '%s', using F9", val);
@@ -65,13 +65,13 @@ void ScreenshotInit()
     }
     lstrcpynA(g_keyName, val, sizeof(g_keyName));
     CharUpperA(g_keyName);
-    GetPrivateProfileStringA("gowfov", "screenshotdir", "", g_dir, sizeof(g_dir), path);
-    GetPrivateProfileStringA("gowfov", "screenshotformat", "jpg", val, sizeof(val), path);
+    GetPrivateProfileStringA("rowe", "screenshotdir", "", g_dir, sizeof(g_dir), path);
+    GetPrivateProfileStringA("rowe", "screenshotformat", "jpg", val, sizeof(val), path);
     g_jpg = lstrcmpiA(val, "png") != 0;
-    g_quality = GetPrivateProfileIntA("gowfov", "screenshotquality", 95, path);
+    g_quality = GetPrivateProfileIntA("rowe", "screenshotquality", 95, path);
     if (g_quality < 1) g_quality = 1;
     if (g_quality > 100) g_quality = 100;
-    GetPrivateProfileStringA("gowfov", "screenshotsize", "full", val, sizeof(val), path);
+    GetPrivateProfileStringA("rowe", "screenshotsize", "full", val, sizeof(val), path);
     g_full = lstrcmpiA(val, "screen") != 0 && lstrcmpiA(val, "window") != 0;
 }
 
@@ -84,7 +84,7 @@ void ScreenshotSetJpg(bool jpg)
     g_jpg = jpg;
     char path[MAX_PATH];
     IniPath(path);
-    WritePrivateProfileStringA("gowfov", "screenshotformat", jpg ? "jpg" : "png", path);
+    WritePrivateProfileStringA("rowe", "screenshotformat", jpg ? "jpg" : "png", path);
 }
 
 void ScreenshotSetFull(bool full)
@@ -92,7 +92,7 @@ void ScreenshotSetFull(bool full)
     g_full = full;
     char path[MAX_PATH];
     IniPath(path);
-    WritePrivateProfileStringA("gowfov", "screenshotsize", full ? "full" : "screen", path);
+    WritePrivateProfileStringA("rowe", "screenshotsize", full ? "full" : "screen", path);
 }
 
 // The screenshot folder (created if missing), with a trailing backslash. A relative path starts
@@ -443,7 +443,7 @@ static void ToolPath(char* out, const char* kind)
 {
     char stamp[32];
     TimeStamp(stamp);
-    _snprintf(out, MAX_PATH - 1, "%sgowfov_%s_%s.png", ModDir(), kind, stamp);
+    _snprintf(out, MAX_PATH - 1, "%srowe_%s_%s.png", ModDir(), kind, stamp);
     out[MAX_PATH - 1] = 0;
 }
 
@@ -473,7 +473,7 @@ void ScreenshotFrame(IDXGISwapChain* swap, bool focused)
     bool wantUser = (down && !prev) || s_userRequest;
     s_userRequest = false;
     prev = down;
-    if (Requested("gowfov_shot.req", counter)) wantTool = true;
+    if (Requested("rowe_shot.req", counter)) wantTool = true;
 
     ReadStrips();
     bool wantPath = s_pathPending && !s_busy;
@@ -507,12 +507,12 @@ void ScreenshotFrame(IDXGISwapChain* swap, bool focused)
     dev->Release();
 }
 
-// After the 3D scene, before the HUD (render thread, from lens.cpp): gowfov_scene.req.
+// After the 3D scene, before the HUD (render thread, from lens.cpp): rowe_scene.req.
 void ScreenshotScene(IDXGISwapChain* swap)
 {
     static DWORD counter;
     static bool want;
-    if (Requested("gowfov_scene.req", counter)) want = true;
+    if (Requested("rowe_scene.req", counter)) want = true;
     if (!want || s_busy) return;
     want = false;
     ID3D10Device* dev = nullptr;

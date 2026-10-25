@@ -1,8 +1,8 @@
 // Crash logger: on an access violation, writes the faulting address and the likely return
 // addresses found on the stack (values pointing into the exe's or this DLL's code) to
-// gowfov.log. It does not handle the exception; the game crashes as it would anyway.
+// rowe.log. It does not handle the exception; the game crashes as it would anyway.
 #include <windows.h>
-#include "gowfov.h"
+#include "rowe.h"
 
 static BYTE* g_selfBase;
 static DWORD g_selfSize;
@@ -29,7 +29,7 @@ static LONG CALLBACK CrashHandler(EXCEPTION_POINTERS* ep)
         if (IsBadReadPtr(sp + i, 4)) break;
         DWORD v = sp[i];
         if (InExeCode(v)) { Log("  stack+%04x: %08lx (exe)", i * 4, v); ++found; }
-        else if (InSelf(v)) { Log("  stack+%04x: %08lx (gowfov+%lx)", i * 4, v, v - (DWORD)g_selfBase); ++found; }
+        else if (InSelf(v)) { Log("  stack+%04x: %08lx (rowe+%lx)", i * 4, v, v - (DWORD)g_selfBase); ++found; }
     }
     ClipCursor(nullptr);  // never leave the cursor confined to a game that is going down
     return EXCEPTION_CONTINUE_SEARCH;

@@ -1,11 +1,12 @@
-// gowfov: d3d9.dll proxy for Gears of War (PC, 2007).
+// ROWE for Gears of War (2007): d3d9.dll proxy for Gears of War (PC, 2007).
 // The game imports d3d9.dll statically (it probes D3D9 even when rendering with D3D10),
 // which makes this a reliable place to get loaded. Rendering hooks live in dx10hook.cpp.
 #include <windows.h>
 #include <d3d9.h>
 #include <stdio.h>
 #include <stdarg.h>
-#include "gowfov.h"
+#include "rowe.h"
+#include "migrate.h"
 
 typedef IDirect3D9* (WINAPI* PFN_Direct3DCreate9)(UINT);
 
@@ -16,7 +17,7 @@ static char g_dir[MAX_PATH];
 void Log(const char* fmt, ...)
 {
     char path[MAX_PATH];
-    wsprintfA(path, "%sgowfov.log", g_dir);
+    wsprintfA(path, "%srowe.log", g_dir);
     FILE* f = fopen(path, "a");
     if (!f) return;
     SYSTEMTIME t;
@@ -30,7 +31,7 @@ void Log(const char* fmt, ...)
     fclose(f);
 }
 
-// gowfov.ini, the log and the tool request/state files all live next to the DLL.
+// rowe.ini, the log and the tool request/state files all live next to the DLL.
 const char* ModDir() { return g_dir; }
 
 // Loads the system d3d9.dll that this proxy stands in for.
@@ -103,7 +104,8 @@ BOOL WINAPI DllMain(HINSTANCE inst, DWORD reason, LPVOID)
         GetModuleFileNameA(inst, g_dir, MAX_PATH);
         char* slash = strrchr(g_dir, '\\');
         if (slash) slash[1] = 0;
-        Log("---- gowfov loaded ----");
+        Log("---- ROWE loaded ----");
+        if (MigrateGowfovFiles(g_dir)) Log("moved the files of the earlier version (gowfov) to the new names");
         CrashLogInstall(inst);
         FovInit();
         LensInit();

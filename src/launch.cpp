@@ -1,5 +1,5 @@
-// Start actions from the launcher. gowfov_launch.txt next to the DLL (written by
-// gowfov_launcher.exe, read and deleted at startup by the game process):
+// Start actions from the launcher. rowe_launch.txt next to the DLL (written by
+// rowe_launcher.exe, read and deleted at startup by the game process):
 //   action=continue            load the campaign checkpoint
 //   action=new                 start a new campaign
 //   difficulty=casual|hardcore|insane   (new campaign)
@@ -14,7 +14,7 @@
 #include <windows.h>
 #include <stdio.h>
 #include <string.h>
-#include "gowfov.h"
+#include "rowe.h"
 
 enum Action { kNone, kContinue, kNew };
 enum Step { kTitle, kMainMenu, kCampaign, kSinglePlayer, kDifficulty, kOverwrite, kDone };
@@ -32,7 +32,7 @@ void LaunchInit()
     const char* name = strrchr(exe, '\\');
     if (lstrcmpiA(name ? name + 1 : exe, "WarGame-G4WLive.exe") != 0) return;  // not Startup.exe
     char path[MAX_PATH], val[32];
-    wsprintfA(path, "%sgowfov_launch.txt", ModDir());
+    wsprintfA(path, "%srowe_launch.txt", ModDir());
     if (GetFileAttributesA(path) == INVALID_FILE_ATTRIBUTES) return;
     GetPrivateProfileStringA("launch", "action", "", val, sizeof(val), path);
     if (lstrcmpiA(val, "continue") == 0) g_action = kContinue;
@@ -93,7 +93,7 @@ static void Accept(Step next, DWORD now)
     Go(next);
 }
 
-// The launcher's background: the title screen, saved once as gowfov_menubg.jpg next to the DLL
+// The launcher's background: the title screen, saved once as rowe_menubg.jpg next to the DLL
 // in a frame where "Press Start" is blinked off, so only the artwork shows. It is taken on this
 // PC from the user's own game, so the launcher ships no game art. The capture goes to a
 // temporary file first and is kept only if the text comes back (it was the blink, not the
@@ -104,8 +104,8 @@ static void MenuBackgroundTick(DWORD now)
     static DWORD titleSince, gone, captured;
     if (done) return;
     char path[MAX_PATH], tmp[MAX_PATH];
-    wsprintfA(path, "%sgowfov_menubg.jpg", ModDir());
-    wsprintfA(tmp, "%sgowfov_menubg.tmp.jpg", ModDir());
+    wsprintfA(path, "%srowe_menubg.jpg", ModDir());
+    wsprintfA(tmp, "%srowe_menubg.tmp.jpg", ModDir());
     if (GetFileAttributesA(path) != INVALID_FILE_ATTRIBUTES) {
         done = true;
         return;

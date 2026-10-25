@@ -15,7 +15,7 @@
 #include <windows.h>
 #include <d3d10.h>
 #include <math.h>
-#include "gowfov.h"
+#include "rowe.h"
 #include "lens_vs.h"
 #include "lens_ps.h"
 
@@ -211,9 +211,9 @@ void LensSetMode(int mode)
 {
     g_mode = mode;
     char path[MAX_PATH], val[8];
-    wsprintfA(path, "%sgowfov.ini", ModDir());
+    wsprintfA(path, "%srowe.ini", ModDir());
     wsprintfA(val, "%d", mode);
-    WritePrivateProfileStringA("gowfov", "lens", val, path);
+    WritePrivateProfileStringA("rowe", "lens", val, path);
 }
 
 float LensEffectiveFov() { return g_lensFov; }
@@ -522,12 +522,12 @@ static UINT __fastcall Exec1(void* self, void*)
     return r;
 }
 
-// Reads lens= from gowfov.ini (also used to reload it at runtime).
+// Reads lens= from rowe.ini (also used to reload it at runtime).
 void LensInit()
 {
     char path[MAX_PATH];
-    wsprintfA(path, "%sgowfov.ini", ModDir());
-    int mode = GetPrivateProfileIntA("gowfov", "lens", kLensAuto, path);
+    wsprintfA(path, "%srowe.ini", ModDir());
+    int mode = GetPrivateProfileIntA("rowe", "lens", kLensAuto, path);
     g_mode = mode >= 0 && mode < kLensModeCount ? mode : kLensAuto;
 }
 
@@ -551,7 +551,7 @@ void LensInstall()
 }
 
 // Once per frame from Present: tracks the swap chain and aspect ratio, counts frames (the warp
-// uses the count to tell gameplay frames from cutscenes), logs stats, handles gowfov_reload.req.
+// uses the count to tell gameplay frames from cutscenes), logs stats, handles rowe_reload.req.
 void LensOnPresent(IDXGISwapChain* swap)
 {
     g_swap = swap;
@@ -571,10 +571,10 @@ void LensOnPresent(IDXGISwapChain* swap)
     g_scenesThisFrame = 0;
     InterlockedIncrement(&g_presentCount);
 
-    // gowfov_reload.req: re-read gowfov.ini (lets tools change settings without key presses).
+    // rowe_reload.req: re-read rowe.ini (lets tools change settings without key presses).
     if (g_presentCount % 15 == 0) {
         char req[MAX_PATH];
-        wsprintfA(req, "%sgowfov_reload.req", ModDir());
+        wsprintfA(req, "%srowe_reload.req", ModDir());
         if (GetFileAttributesA(req) != INVALID_FILE_ATTRIBUTES) {
             DeleteFileA(req);
             FovInit();

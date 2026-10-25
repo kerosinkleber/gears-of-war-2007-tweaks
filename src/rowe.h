@@ -1,4 +1,4 @@
-// gowfov: declarations shared between the modules, grouped by source file.
+// ROWE for Gears of War (2007): declarations shared between the modules, grouped by source file.
 //
 // Threads: the "game thread" is the engine's main thread (camera, UI, input, window messages);
 // the "render thread" is the engine's rendering thread (scene commands, Present). Most hooks run
@@ -12,41 +12,41 @@
 #include <stdio.h>
 
 // dllmain.cpp
-void Log(const char* fmt, ...);  // appends a timestamped line to gowfov.log
+void Log(const char* fmt, ...);  // appends a timestamped line to rowe.log
 const char* ModDir();            // folder of the DLL, with trailing backslash
 
 // detour.cpp: returns the trampoline (call it to run the original), or null if not installed.
 void* InstallDetour(DWORD targetVA, const BYTE* expected, int len, void* hook, const char* name);
 void* PatchExeImport(const char* dll, const char* name, void* hook);  // returns the original function
 
-void CrashLogInstall(HMODULE self);  // crashlog.cpp: logs access violations to gowfov.log
+void CrashLogInstall(HMODULE self);  // crashlog.cpp: logs access violations to rowe.log
 void IntrosInstall();                // intros.cpp: skips the startup intro videos
 bool IntrosSkipped();                // setting (takes effect at the next launch)
 void IntrosSetSkipped(bool skip);
 
-// gamecmd.cpp: gowfov_cmd.txt commands and gowfov_state.txt status (see the file header).
+// gamecmd.cpp: rowe_cmd.txt commands and rowe_state.txt status (see the file header).
 void GameCmdTick();                   // once per frame, game thread
 void GameCmdSetWindow(HWND window);
 bool GameCmdKey(const char* name);    // posts a key press to the game window (false: no window yet)
 void GameCmdTravel(const char* url);  // GEngine->SetClientTravel
 
-// fovtrace.cpp: per-frame FOV pipeline trace (request: gowfov_fovtrace.req).
+// fovtrace.cpp: per-frame FOV pipeline trace (request: rowe_fovtrace.req).
 void FovTraceAdd(char kind, float a, float b, float c, float d, void* obj);
 void FovTracePresent();
 
-// textcapture.cpp: strings the engine draws each frame, written into gowfov_state.txt.
+// textcapture.cpp: strings the engine draws each frame, written into rowe_state.txt.
 void TextCaptureInstall();
 void TextCaptureFrame();
 void TextCaptureWrite(FILE* f);
 bool TextFind(const wchar_t* text, float* y, float* alpha);  // a string drawn last frame
 bool TextFocused(wchar_t* out, int size, float* y);          // the highlighted menu entry
 
-// launch.cpp: carries out gowfov_launch.txt (written by the launcher): continue the campaign or
+// launch.cpp: carries out rowe_launch.txt (written by the launcher): continue the campaign or
 // start a new one at a difficulty, through the game's own menus.
 void LaunchInit();   // DllMain: reads and deletes the request (game process only)
 void LaunchTick();   // once per frame, game thread
 
-// background.cpp: gowfov.ini background=1 keeps the game active and accepting posted input
+// background.cpp: rowe.ini background=1 keeps the game active and accepting posted input
 // while unfocused (for driving it from tools).
 void BackgroundInit();
 void BackgroundInstall();
@@ -63,11 +63,11 @@ void ShoulderSetStartLeft(bool left);  // saves; also switches the camera now
 
 // mousetrap.cpp: keeps the cursor on the game's monitor while the game is in front.
 enum { kMouseTrapOff = 0, kMouseTrapGameplay = 1, kMouseTrapAlways = 2, kMouseTrapModeCount = 3 };
-void MouseTrapInit();               // reads gowfov.ini
+void MouseTrapInit();               // reads rowe.ini
 void MouseTrapInstall();            // ClipCursor import
 void MouseTrapFrame(HWND window);   // from Present
 int MouseTrapGetMode();
-void MouseTrapSetMode(int mode);    // saves to gowfov.ini
+void MouseTrapSetMode(int mode);    // saves to rowe.ini
 
 // dx10hook.cpp: hooks IDXGISwapChain (the game renders with D3D10).
 void Dx10HookInstall();
@@ -75,7 +75,7 @@ void Dx10HookPatchSwapChain(IDXGISwapChain* swap);  // patches the vtable shared
 HRESULT SwapGetRealBuffer(IDXGISwapChain* swap, ID3D10Texture2D** out);  // bypasses supersampling
 
 // supersample.cpp: engine renders at a virtual resolution, averaged down at Present.
-void SupersampleInit();          // reads gowfov.ini
+void SupersampleInit();          // reads rowe.ini
 void SupersampleEarlyInstall();  // DllMain: redirects the engine's CreateDXGIFactory
 void SupersampleInstall();       // engine hooks (viewport size, display modes, mouse)
 float SupersampleSetting();      // configured multiplier (applies in fullscreen)
@@ -103,7 +103,7 @@ float LensRenderFov(float lensFov);  // FOV the engine must render for this lens
 float LensEffectiveFov();            // lens FOV actually in use (0 when not warping)
 bool LensGameplayActive();           // the gameplay camera updated within the last few frames
 int LensGetMode();
-void LensSetMode(int mode);  // saves to gowfov.ini
+void LensSetMode(int mode);  // saves to rowe.ini
 
 // overlay.cpp: the F8 settings menu (also polls the F9 screenshot and Tab shoulder keys).
 void OverlayFrame(IDXGISwapChain* swap);  // from Present, after the supersampling resolve
@@ -111,13 +111,13 @@ void OverlayLost();                       // before the swap chain's buffers are
 
 // screenshot.cpp: the screenshot key (JPEG/PNG, full supersampled or screen size, written in the
 // background) and the tools' captures.
-void ScreenshotInit();                                   // reads gowfov.ini
+void ScreenshotInit();                                   // reads rowe.ini
 void ScreenshotFrame(IDXGISwapChain* swap, bool focused);  // from Present, before the overlay draws
-void ScreenshotScene(IDXGISwapChain* swap);              // after the 3D scene: gowfov_scene.req
+void ScreenshotScene(IDXGISwapChain* swap);              // after the 3D scene: rowe_scene.req
 bool ScreenshotJpg();
-void ScreenshotSetJpg(bool jpg);     // saves to gowfov.ini
+void ScreenshotSetJpg(bool jpg);     // saves to rowe.ini
 bool ScreenshotFull();
-void ScreenshotSetFull(bool full);   // saves to gowfov.ini
+void ScreenshotSetFull(bool full);   // saves to rowe.ini
 const char* ScreenshotKeyName();
 void ScreenshotRequestUser();    // tools: a screenshot as the key takes it
 void ScreenshotRequestTo(const char* path);  // the next frame, screen size, JPEG
@@ -129,8 +129,8 @@ static const float kFovMax = 159.f;  // highest FOV the mod sets or hands to the
 void FovInit();
 void FovInstall();  // detours the engine's FOV function; call once the engine is loaded
 float FovGet();
-void FovSet(float degrees);  // saves to gowfov.ini
+void FovSet(float degrees);  // saves to rowe.ini
 // Aiming FOV: 0 = the game's (40), otherwise kAimFovMin..kAimFovMax. Scopes keep their zoom.
 static const float kAimFovMin = 30.f, kAimFovMax = 120.f;  // also capped at the normal FOV
 float FovGetAim();
-void FovSetAim(float degrees);  // saves to gowfov.ini
+void FovSetAim(float degrees);  // saves to rowe.ini

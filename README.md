@@ -1,4 +1,6 @@
-# Gears of War (2007) Tweaks
+# ROWE for Gears of War (2007)
+
+*ROWE: Reinhold Oberstürcks wunderbare Erweiterungen.*
 
 A mod for **Gears of War for Windows** (PC, 2007) that adds:
 
@@ -10,9 +12,9 @@ A mod for **Gears of War for Windows** (PC, 2007) that adds:
 - **Intro skip**: no ESRB, Epic and Microsoft Game Studios videos at startup. Loading screens still play.
 - An in-game **settings menu** (F8).
 - **Screenshots** (F9 by default) as JPEG or PNG, at the full supersampled resolution or the screen's, to a folder you choose. They are written in the background, so the game doesn't stall.
-- A **launcher** (`gowfov_launcher.exe`): all settings before the game starts, **save slots** for the campaign, and a direct start into **Continue** or a **New campaign** at a chosen difficulty.
+- A **launcher** (`rowe_launcher.exe`): all settings before the game starts, **save slots** for the campaign, and a direct start into **Continue** or a **New campaign** at a chosen difficulty.
 
-It is a single `d3d9.dll` that goes next to the game's executable. No game files are modified. Its own files keep the mod's original name, gowfov (`gowfov.ini`, `gowfov.log`).
+It is a single `d3d9.dll` that goes next to the game's executable. No game files are modified. Its own files are named `rowe` (`rowe.ini`, `rowe.log`); the files of earlier versions, which were named `gowfov`, are moved over automatically.
 
 ## Requirements
 
@@ -26,32 +28,32 @@ It is a single `d3d9.dll` that goes next to the game's executable. No game files
 
 ## Installing
 
-1. Download `d3d9.dll`, and if you want the [launcher](#launcher) also `gowfov_launcher.exe`, from the [releases](https://github.com/kerosinkleber/gears-of-war-2007-tweaks/releases), or build them yourself (see below).
+1. Download `d3d9.dll`, and if you want the [launcher](#launcher) also `rowe_launcher.exe`, from the [releases](https://github.com/kerosinkleber/rowe-gears-of-war-2007/releases), or build them yourself (see below).
 2. Copy them into the game's `Binaries` folder, next to `WarGame-G4WLive.exe` and `Startup.exe`. The launcher only works from that folder.
-3. Start the game as usual through `Startup.exe`, or through `gowfov_launcher.exe`. For a desktop shortcut to the launcher, right-click `gowfov_launcher.exe` → *Send to* → *Desktop (create shortcut)*.
+3. Start the game as usual through `Startup.exe`, or through `rowe_launcher.exe`. For a desktop shortcut to the launcher, right-click `rowe_launcher.exe` → *Send to* → *Desktop (create shortcut)*.
 
-To uninstall, delete `d3d9.dll`, plus `gowfov.ini` and `gowfov.log` if they exist (and `gowfov_launcher.exe` and the `gowfov_saves` folder if you used the launcher).
+To uninstall, delete `d3d9.dll`, plus `rowe.ini` and `rowe.log` if they exist (and `rowe_launcher.exe` and the `rowe_saves` folder if you used the launcher).
 
 ## Launcher
 
-`gowfov_launcher.exe` goes into the same `Binaries` folder. It looks and works like the game's own menus: the title screen's artwork behind it, the entries as bars with the highlighted one lit, and a large title and a line of help for the highlighted entry. Use it with the arrow keys, Enter and Esc, or the mouse (click, wheel to change a setting). Its pages:
+`rowe_launcher.exe` goes into the same `Binaries` folder. It looks and works like the game's own menus: the title screen's artwork behind it, the entries as bars with the highlighted one lit, and a large title and a line of help for the highlighted entry. Use it with the arrow keys, Enter and Esc, or the mouse (click, wheel to change a setting). Its pages:
 
 - **Continue campaign** starts the game and loads the checkpoint, without clicking through the menus.
 - **New campaign** on Casual, Hardcore or Insane starts the game and goes through its own menus (Campaign, Single Player, New Campaign, the difficulty, and the checkpoint overwrite question) by itself. Insane is only offered by the game after you finish the campaign; if it is locked, the launcher's request stops at the difficulty screen.
 - **Save slots**: the game has only one checkpoint, and a new campaign overwrites it. The launcher keeps copies of it as named slots. **Save current campaign** stores the current checkpoint; Enter on a slot restores it (the next Continue loads it) or deletes it. Before a new campaign or a restore, the current checkpoint is stored as a slot by itself (unless a slot already holds exactly it).
-- **Mod settings**: everything in `gowfov.ini`.
+- **Mod settings**: everything in `rowe.ini`.
 - **Game settings**: resolution, fullscreen, DirectX 10, VSync, antialiasing, anisotropic filtering, detail and effects, in the game's `WarEngineUserSettings.ini`.
 
-The background is the game's title screen, saved by the mod as `gowfov_menubg.jpg` the first time the title screen shows (in a moment when "Press Start" is blinked off), so the launcher contains no game art. Until then it shows a dark red background.
+The background is the game's title screen, saved by the mod as `rowe_menubg.jpg` the first time the title screen shows (in a moment when "Press Start" is blinked off), so the launcher contains no game art. Until then it shows a dark red background.
 
-Settings are saved as you change them. Desktop shortcuts can start the game at once: `gowfov_launcher.exe --continue`, or `--new casual` / `--new hardcore` / `--new insane`.
+Settings are saved as you change them. Desktop shortcuts can start the game at once: `rowe_launcher.exe --continue`, or `--new casual` / `--new hardcore` / `--new insane`.
 
 Notes:
 
 - The checkpoint lives in the player profile. Save slots work with the XLiveEmu GFWL replacement, which keeps the profile in `Binaries\XLiveEmu\<profile>\Offline\Title1–3.dat`. Those files are encrypted for your Windows account, so slots cannot be moved to another PC or user.
 - A slot holds the whole profile file, so restoring one also brings back that time's options and unlocked chapters.
 - Starting into Continue or a new campaign reads the game's English menu texts. With another game language the launcher's request stops at the menu and you continue by hand.
-- Slots are folders in `Binaries\gowfov_saves`; each has a `slot.ini` with its name and date.
+- Slots are folders in `Binaries\rowe_saves`; each has a `slot.ini` with its name and date.
 
 ## Using it
 
@@ -64,7 +66,7 @@ Notes:
 | Tab | Swap the camera to the other shoulder |
 | F9 | Screenshot (key, folder, format and size: see the `screenshot...` settings) |
 
-Settings are saved to `gowfov.ini` next to the DLL the first time one is changed:
+Settings are saved to `rowe.ini` next to the DLL the first time one is changed:
 
 | Key | Values | Default |
 |---|---|---|
@@ -113,7 +115,7 @@ The game imports `d3d9.dll` even when it renders with DirectX 10, so a proxy DLL
 | `src/overlay.cpp`, `src/overlay.hlsl` | F8 settings menu |
 | `src/intros.cpp` | Intro skip |
 | `src/screenshot.cpp` | Screenshots (GPU copy, read back over a few frames, JPEG/PNG encoding on a worker thread) |
-| `src/crashlog.cpp` | Writes the crash address and stack to `gowfov.log` |
+| `src/crashlog.cpp` | Writes the crash address and stack to `rowe.log` |
 | `src/launch.cpp` | Carries out the launcher's start request (continue, or a new campaign through the menus) |
 | `src/launcher/launcher.cpp` | The launcher |
 | `third_party/` | Dear ImGui (MIT) and Share Tech Mono (SIL OFL), each with its licence, for the launcher |
@@ -128,16 +130,16 @@ Needs Visual Studio 2017 or newer (the free Build Tools are enough) with the C++
 build.bat
 ```
 
-The output is `out\d3d9.dll`, a 32-bit DLL with the C runtime linked in statically, so no Visual C++ redistributable is needed, and `out\gowfov_launcher.exe`. The script also builds `out\harness.exe`. That program loads the DLL, renders a few frames with the settings menu forced open, and saves `out\harness.bmp`.
+The output is `out\d3d9.dll`, a 32-bit DLL with the C runtime linked in statically, so no Visual C++ redistributable is needed, and `out\rowe_launcher.exe`. The script also builds `out\harness.exe`. That program loads the DLL, renders a few frames with the settings menu forced open, and saves `out\harness.bmp`.
 
 ## Developer tooling
 
 These exist to diagnose and test the mod without a person at the keyboard. Normal play doesn't use any of them.
 
-- `gowfov.log` records what was hooked, settings changes and, on a crash, the faulting address with the return addresses found on the stack.
+- `rowe.log` records what was hooked, settings changes and, on a crash, the faulting address with the return addresses found on the stack.
 - `background=1` keeps the game running and accepting input while its window is in the background.
   Keys and mouse buttons held by the tools count as held down. A tool cursor replaces the real one inside the game.
-- `gowfov_cmd.txt`: commands, one per line, run on the game thread and then deleted:
+- `rowe_cmd.txt`: commands, one per line, run on the game thread and then deleted:
 
   | Command | Effect |
   |---|---|
@@ -148,15 +150,15 @@ These exist to diagnose and test the mod without a person at the keyboard. Norma
   | `mouse <x> <y>` | Move the cursor (client pixels) |
   | `lmb down` / `lmb up` | Left mouse button |
   | `ss <factor>` | Set supersampling |
-- `gowfov_state.txt` is rewritten twice a second. It holds the frame count, whether the gameplay camera is active, the lens and supersampling state, and every string drawn on screen with its position and color. The highlighted menu entry is the one with alpha 0.99.
+- `rowe_state.txt` is rewritten twice a second. It holds the frame count, whether the gameplay camera is active, the lens and supersampling state, and every string drawn on screen with its position and color. The highlighted menu entry is the one with alpha 0.99.
 - Request files: create the file next to the DLL and the mod picks it up within a few frames:
 
   | File | Effect |
   |---|---|
-  | `gowfov_shot.req` | Screenshot at the screen's size (`gowfov_shot_<date>_<time>.png`) |
-  | `gowfov_scene.req` | Screenshot of the 3D scene before the HUD (`gowfov_scene_<date>_<time>.png`) |
-  | `gowfov_reload.req` | Re-read `gowfov.ini` |
-  | `gowfov_fovtrace.req` | Record 8 seconds of per-frame camera, FOV and lens data to `gowfov_fovtrace.csv` |
+  | `rowe_shot.req` | Screenshot at the screen's size (`rowe_shot_<date>_<time>.png`) |
+  | `rowe_scene.req` | Screenshot of the 3D scene before the HUD (`rowe_scene_<date>_<time>.png`) |
+  | `rowe_reload.req` | Re-read `rowe.ini` |
+  | `rowe_fovtrace.req` | Record 8 seconds of per-frame camera, FOV and lens data to `rowe_fovtrace.csv` |
 
 ## License
 

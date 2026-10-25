@@ -16,7 +16,7 @@
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include "gowfov.h"
+#include "rowe.h"
 #include "downscale_vs.h"
 #include "downscale_ps.h"
 
@@ -25,7 +25,7 @@ static const UINT kMaxTextureSize = 8192;  // D3D10 limit per axis
 // (ComputeVirtual), which at 2560x1440 is reached at about 10.2.
 static const float kMaxFactor = 10.f;
 
-static float g_factor = 1.f;          // pixel-count multiplier from gowfov.ini
+static float g_factor = 1.f;          // pixel-count multiplier from rowe.ini
 static volatile bool g_active;        // engine viewport is currently virtual
 static UINT g_nativeW, g_nativeH, g_virtW, g_virtH;
 static HWND g_window;                 // game window (swap chain output window)
@@ -33,12 +33,12 @@ static IDXGISwapChain* g_swap;        // the virtualized swap chain (weak)
 
 // ---- settings ------------------------------------------------------------------------------
 
-// Reads supersample= (pixel-count multiplier, clamped to 1..9) from gowfov.ini.
+// Reads supersample= (pixel-count multiplier, clamped to 1..9) from rowe.ini.
 void SupersampleInit()
 {
     char path[MAX_PATH], val[32];
-    wsprintfA(path, "%sgowfov.ini", ModDir());
-    GetPrivateProfileStringA("gowfov", "supersample", "1", val, sizeof(val), path);
+    wsprintfA(path, "%srowe.ini", ModDir());
+    GetPrivateProfileStringA("rowe", "supersample", "1", val, sizeof(val), path);
     g_factor = (float)atof(val);
     if (g_factor < 1.f) g_factor = 1.f;
     if (g_factor > kMaxFactor) g_factor = kMaxFactor;
@@ -177,9 +177,9 @@ void SupersampleSetFactor(float factor)
     if (factor < 1.f) factor = 1.f;
     if (factor > kMaxFactor) factor = kMaxFactor;
     char path[MAX_PATH], val[16];
-    wsprintfA(path, "%sgowfov.ini", ModDir());
+    wsprintfA(path, "%srowe.ini", ModDir());
     sprintf_s(val, "%.2f", factor);
-    WritePrivateProfileStringA("gowfov", "supersample", val, path);
+    WritePrivateProfileStringA("rowe", "supersample", val, path);
     g_pendingFactor = factor;
     if (g_window && g_origWndProc) PostMessageW(g_window, kApplyMessage, 0, 0);
     else g_factor = factor;  // before the window exists: used at startup

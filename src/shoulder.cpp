@@ -1,11 +1,11 @@
 // Shoulder swap: Tab mirrors the third-person camera to the other shoulder. The shoulder the
-// camera starts on is a setting (gowfov.ini: shoulder=left|right).
+// camera starts on is a setting (rowe.ini: shoulder=left|right).
 //
 // UWarCameraMode::GetViewOffset (exe VA 0x00EFAFD0) returns the camera offset relative to the
 // pawn in camera space (X forward, Y right, Z up). Negating Y moves the camera to the left
 // shoulder; the engine's own camera collision still runs on the result afterwards.
 #include <windows.h>
-#include "gowfov.h"
+#include "rowe.h"
 
 struct FVector { float X, Y, Z; };
 
@@ -44,12 +44,12 @@ static FVector* __fastcall HookGetViewOffset(void* self, void*, FVector* ret, vo
     return r;
 }
 
-// Reads the start shoulder from gowfov.ini and detours GetViewOffset.
+// Reads the start shoulder from rowe.ini and detours GetViewOffset.
 void ShoulderInstall()
 {
     char path[MAX_PATH], val[16];
-    wsprintfA(path, "%sgowfov.ini", ModDir());
-    GetPrivateProfileStringA("gowfov", "shoulder", "right", val, sizeof(val), path);
+    wsprintfA(path, "%srowe.ini", ModDir());
+    GetPrivateProfileStringA("rowe", "shoulder", "right", val, sizeof(val), path);
     g_startLeft = lstrcmpiA(val, "left") == 0;
     g_left = g_startLeft;
     g_side = g_left ? -1.f : 1.f;
@@ -65,8 +65,8 @@ void ShoulderSetStartLeft(bool left)
     g_startLeft = left;
     g_left = left;
     char path[MAX_PATH];
-    wsprintfA(path, "%sgowfov.ini", ModDir());
-    WritePrivateProfileStringA("gowfov", "shoulder", left ? "left" : "right", path);
+    wsprintfA(path, "%srowe.ini", ModDir());
+    WritePrivateProfileStringA("rowe", "shoulder", left ? "left" : "right", path);
 }
 
 // Polled from Present; `focused` is true when the game window has keyboard focus.

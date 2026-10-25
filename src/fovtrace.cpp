@@ -1,11 +1,11 @@
 // Per-frame trace of the camera FOV pipeline, for diagnosing jumps during zoom transitions.
-// Request: create gowfov_fovtrace.req; the next ~8 seconds are written to gowfov_fovtrace.csv.
+// Request: create rowe_fovtrace.req; the next ~8 seconds are written to rowe_fovtrace.csv.
 //
 // Rows come from two threads: "cam" rows from the game thread (camera FOV hook, camera mode
 // offset hook) and "warp" rows from the render thread (parameters the lens warp used).
 #include <windows.h>
 #include <stdio.h>
-#include "gowfov.h"
+#include "rowe.h"
 
 struct TraceRow {
     double t;          // ms since trace start
@@ -33,11 +33,11 @@ void FovTraceAdd(char kind, float a, float b, float c, float d, void* obj)
     g_rows[i] = {t, kind, a, b, c, d, obj};
 }
 
-// Writes the recorded rows to gowfov_fovtrace.csv.
+// Writes the recorded rows to rowe_fovtrace.csv.
 static void Dump()
 {
     char path[MAX_PATH];
-    wsprintfA(path, "%sgowfov_fovtrace.csv", ModDir());
+    wsprintfA(path, "%srowe_fovtrace.csv", ModDir());
     FILE* f = fopen(path, "w");
     if (!f) return;
     fprintf(f, "t_ms,kind,a,b,c,d,obj\n");
@@ -57,7 +57,7 @@ void FovTracePresent()
     static DWORD counter;
     if (!g_active && ++counter % 15 == 0) {
         char req[MAX_PATH];
-        wsprintfA(req, "%sgowfov_fovtrace.req", ModDir());
+        wsprintfA(req, "%srowe_fovtrace.req", ModDir());
         if (GetFileAttributesA(req) != INVALID_FILE_ATTRIBUTES) {
             DeleteFileA(req);
             QueryPerformanceCounter(&g_start);

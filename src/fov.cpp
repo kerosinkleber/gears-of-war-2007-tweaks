@@ -6,7 +6,7 @@
 #include <windows.h>
 #include <string.h>
 #include <math.h>
-#include "gowfov.h"
+#include "rowe.h"
 
 static volatile float g_fov;     // slider value; 0 = no override
 static volatile float g_aimFov;  // aiming FOV; 0 = the game's (kAimFov)
@@ -77,17 +77,17 @@ static float __stdcall HookAdjust(float fov, void* pawn)
 
 static void IniPath(char* out)
 {
-    wsprintfA(out, "%sgowfov.ini", ModDir());
+    wsprintfA(out, "%srowe.ini", ModDir());
 }
 
-// Reads fov= and aimfov= from gowfov.ini (also used to reload them at runtime).
+// Reads fov= and aimfov= from rowe.ini (also used to reload them at runtime).
 void FovInit()
 {
     char path[MAX_PATH];
     IniPath(path);
-    g_fov = (float)GetPrivateProfileIntA("gowfov", "fov", 0, path);
+    g_fov = (float)GetPrivateProfileIntA("rowe", "fov", 0, path);
     if (g_fov > kFovMax) g_fov = kFovMax;
-    float aim = (float)GetPrivateProfileIntA("gowfov", "aimfov", 0, path);
+    float aim = (float)GetPrivateProfileIntA("rowe", "aimfov", 0, path);
     g_aimFov = aim > 0 ? (aim < kAimFovMin ? kAimFovMin : aim > kAimFovMax ? kAimFovMax : aim) : 0.f;
     Log("FovInit fov=%d aimfov=%d", (int)g_fov, (int)g_aimFov);
 }
@@ -106,7 +106,7 @@ void FovSet(float degrees)
     char path[MAX_PATH], val[16];
     IniPath(path);
     wsprintfA(val, "%d", (int)(degrees + 0.5f));
-    WritePrivateProfileStringA("gowfov", "fov", val, path);
+    WritePrivateProfileStringA("rowe", "fov", val, path);
 }
 
 float FovGetAim() { return g_aimFov; }
@@ -119,5 +119,5 @@ void FovSetAim(float degrees)
     char path[MAX_PATH], val[16];
     IniPath(path);
     wsprintfA(val, "%d", (int)(degrees + 0.5f));
-    WritePrivateProfileStringA("gowfov", "aimfov", val, path);
+    WritePrivateProfileStringA("rowe", "aimfov", val, path);
 }

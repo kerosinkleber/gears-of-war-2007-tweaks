@@ -51,7 +51,7 @@ int main()
     sprintf(dll, "%s\\d3d9.dll", dir);
     sprintf(out, "%s\\harness.bmp", dir);
 
-    SetEnvironmentVariableA("GOWFOV_TEST", "1");
+    SetEnvironmentVariableA("ROWE_TEST", "1");
     HMODULE mod = LoadLibraryA(dll);
     if (!mod) { printf("LoadLibrary failed %lu\n", GetLastError()); return 1; }
     PFN_Direct3DCreate9 create = (PFN_Direct3DCreate9)GetProcAddress(mod, "Direct3DCreate9");
@@ -60,11 +60,11 @@ int main()
     WNDCLASSA wc = {};
     wc.lpfnWndProc = DefWindowProcA;
     wc.hInstance = GetModuleHandleA(nullptr);
-    wc.lpszClassName = "gowfov_harness";
+    wc.lpszClassName = "rowe_harness";
     RegisterClassA(&wc);
     RECT r = {0, 0, 1280, 720};
     AdjustWindowRect(&r, WS_OVERLAPPEDWINDOW, FALSE);
-    HWND hwnd = CreateWindowA("gowfov_harness", "gowfov harness", WS_OVERLAPPEDWINDOW | WS_VISIBLE,
+    HWND hwnd = CreateWindowA("rowe_harness", "ROWE harness", WS_OVERLAPPEDWINDOW | WS_VISIBLE,
         50, 50, r.right - r.left, r.bottom - r.top, nullptr, nullptr, wc.hInstance, nullptr);
 
     DXGI_SWAP_CHAIN_DESC sd = {};

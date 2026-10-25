@@ -2,7 +2,7 @@
 // of `target` into a trampoline and replaces them with a jump to `hook`.
 #include <windows.h>
 #include <string.h>
-#include "gowfov.h"
+#include "rowe.h"
 
 // Replaces one function in the exe's import table; returns the previous target or null.
 void* PatchExeImport(const char* dll, const char* name, void* hook)

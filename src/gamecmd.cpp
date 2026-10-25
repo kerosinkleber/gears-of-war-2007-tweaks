@@ -1,6 +1,6 @@
 // Command + state channel for driving the game from tools without screenshots or focus.
 //
-//  gowfov_cmd.txt   one command per line, picked up on the game thread and then deleted:
+//  rowe_cmd.txt   one command per line, picked up on the game thread and then deleted:
 //                     continue          load the campaign checkpoint (what "Continue Campaign" does)
 //                     travel <url>      GEngine->SetClientTravel(url)
 //                     key <name>        post a key press to the game window (Enter, Esc, Up, ...)
@@ -8,13 +8,13 @@
 //                     mouse <x> <y>, lmb down|up   move the (tool) cursor in client pixels, left button
 //                     ss <factor>       set supersampling (saved, applied right away)
 //                     usershot          take a screenshot as the screenshot key does
-//  gowfov_state.txt rewritten twice a second: frame count, whether the gameplay camera is
+//  rowe_state.txt rewritten twice a second: frame count, whether the gameplay camera is
 //                   active, lens and supersampling state, and the text drawn last frame.
 #include <windows.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "gowfov.h"
+#include "rowe.h"
 
 static const DWORD kGEngine = 0x01B9F5D4;  // UEngine* GEngine
 static const int kTravelSlot = 0x114 / 4;  // SetClientTravel(const TCHAR* URL, ETravelType)
@@ -101,11 +101,11 @@ static void PostLeftMouse(bool down)
     Log("cmd: left mouse %s", down ? "down" : "up");
 }
 
-// Reads and deletes gowfov_cmd.txt, then runs its commands in order (up to 16).
+// Reads and deletes rowe_cmd.txt, then runs its commands in order (up to 16).
 static void RunCommands()
 {
     char path[MAX_PATH];
-    wsprintfA(path, "%sgowfov_cmd.txt", ModDir());
+    wsprintfA(path, "%srowe_cmd.txt", ModDir());
     FILE* f = fopen(path, "r");
     if (!f) return;
     char line[600];
@@ -140,12 +140,12 @@ static void RunCommands()
     }
 }
 
-// Writes gowfov_state.txt through a temporary file, so readers never see half a file.
+// Writes rowe_state.txt through a temporary file, so readers never see half a file.
 static void WriteState()
 {
     char path[MAX_PATH], tmp[MAX_PATH];
-    wsprintfA(path, "%sgowfov_state.txt", ModDir());
-    wsprintfA(tmp, "%sgowfov_state.tmp", ModDir());
+    wsprintfA(path, "%srowe_state.txt", ModDir());
+    wsprintfA(tmp, "%srowe_state.tmp", ModDir());
     FILE* f = fopen(tmp, "w");
     if (!f) return;
     UINT nw = 0, nh = 0, vw = 0, vh = 0;

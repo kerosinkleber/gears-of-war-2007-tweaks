@@ -3,7 +3,7 @@
 #include <d3d10.h>
 #include <math.h>
 #include <string.h>
-#include "gowfov.h"
+#include "rowe.h"
 #include "overlay_vs.h"
 #include "overlay_ps.h"
 
@@ -12,7 +12,7 @@ static const int kMaxFov = (int)kFovMax;
 static const int kToggleKey = VK_F8;
 
 static bool g_open;
-static bool g_testMode;  // GOWFOV_TEST=1: always open, no focus check (used by the test harness)
+static bool g_testMode;  // ROWE_TEST=1: always open, no focus check (used by the test harness)
 static bool g_keyPrev[256];
 
 // ---- UI geometry (pixel space) -------------------------------------------------------------
@@ -99,7 +99,7 @@ static void BuildUI(int bh)
     float ph = 14 * s + kRowCount * rowH + 14 * s;
     Rect(px, py, pw, ph, 0xC0101018);
     Rect(px, py, pw, 2, 0xFFE0A030);
-    Text(px + 4 * s, py + 4 * s, "GOWFOV SETTINGS", s * 0.75f, 0xFFE0A030);
+    Text(px + 4 * s, py + 4 * s, "ROWE SETTINGS", s * 0.75f, 0xFFE0A030);
 
     static const char* kLensNames[kLensModeCount] = {"OFF", "AUTO", "PANINI", "STEREO", "FISHEYE"};
     char value[64], note[64];
@@ -385,7 +385,7 @@ void OverlayFrame(IDXGISwapChain* swap)
     if (!init) {
         init = true;
         char v[8] = {};
-        g_testMode = GetEnvironmentVariableA("GOWFOV_TEST", v, sizeof(v)) && v[0] == '1';
+        g_testMode = GetEnvironmentVariableA("ROWE_TEST", v, sizeof(v)) && v[0] == '1';
     }
     Update();
     ShoulderUpdate(!g_testMode && GameHasFocus());

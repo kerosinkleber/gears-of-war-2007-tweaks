@@ -1,5 +1,5 @@
 // Mouse trap: keeps the cursor on the monitor the game runs on, so it cannot drift onto another
-// screen (where a click would switch away from the game). gowfov.ini mousetrap=0 off (the game's
+// screen (where a click would switch away from the game). rowe.ini mousetrap=0 off (the game's
 // own behaviour), 1 during gameplay only (menus leave the cursor free, even where the game would
 // confine it), 2 during gameplay and in menus. The mod only manages the cursor while the game
 // window is in front and lets go as soon as it is not.
@@ -14,7 +14,7 @@
 // supersampling, GetClientRect reports the larger virtual size and the engine's rectangle would
 // reach past the screen.
 #include <windows.h>
-#include "gowfov.h"
+#include "rowe.h"
 
 static volatile int g_mode;              // kMouseTrapOff / Gameplay / Always
 static volatile bool g_engineClips;      // the engine's last ClipCursor request was a rectangle
@@ -129,12 +129,12 @@ void MouseTrapFrame(HWND window)
     g_origClipCursor(clip ? &want : nullptr);
 }
 
-// Reads mousetrap= from gowfov.ini (also used to reload it at runtime).
+// Reads mousetrap= from rowe.ini (also used to reload it at runtime).
 void MouseTrapInit()
 {
     char path[MAX_PATH];
-    wsprintfA(path, "%sgowfov.ini", ModDir());
-    int mode = GetPrivateProfileIntA("gowfov", "mousetrap", kMouseTrapOff, path);
+    wsprintfA(path, "%srowe.ini", ModDir());
+    int mode = GetPrivateProfileIntA("rowe", "mousetrap", kMouseTrapOff, path);
     g_mode = mode >= 0 && mode < kMouseTrapModeCount ? mode : kMouseTrapOff;
 }
 
@@ -144,9 +144,9 @@ void MouseTrapSetMode(int mode)
 {
     g_mode = mode;
     char path[MAX_PATH], val[8];
-    wsprintfA(path, "%sgowfov.ini", ModDir());
+    wsprintfA(path, "%srowe.ini", ModDir());
     wsprintfA(val, "%d", mode);
-    WritePrivateProfileStringA("gowfov", "mousetrap", val, path);
+    WritePrivateProfileStringA("rowe", "mousetrap", val, path);
 }
 
 // From DllMain: the exe's ClipCursor import.

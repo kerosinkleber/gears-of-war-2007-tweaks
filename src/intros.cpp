@@ -8,11 +8,11 @@
 // and normally the title screen interrupts the sequence before it plays. If it plays at boot, the
 // first loading screen's request for it fails ("Failed to open/prepare movie") and loads show no
 // loading screen. It stays registered as an always-loaded movie, so loading screens still use it.
-// gowfov.ini: skipintros=0 turns this off.
+// rowe.ini: skipintros=0 turns this off.
 #include <windows.h>
 #include <string.h>
 #include <intrin.h>
-#include "gowfov.h"
+#include "rowe.h"
 
 struct QueueArray { BYTE* data; int num; int max; };
 static const int kEntrySize = 28;  // FString name (data, num, max) + 4 more fields
@@ -66,8 +66,8 @@ void IntrosSetSkipped(bool skip)
 {
     g_enabled = skip;
     char path[MAX_PATH];
-    wsprintfA(path, "%sgowfov.ini", ModDir());
-    WritePrivateProfileStringA("gowfov", "skipintros", skip ? "1" : "0", path);
+    wsprintfA(path, "%srowe.ini", ModDir());
+    WritePrivateProfileStringA("rowe", "skipintros", skip ? "1" : "0", path);
 }
 
 // Patches the call to the movie player constructor (and the PlayMovie slot, for the log).
@@ -84,8 +84,8 @@ void IntrosInstall()
         }
     }
     char path[MAX_PATH];
-    wsprintfA(path, "%sgowfov.ini", ModDir());
-    g_enabled = GetPrivateProfileIntA("gowfov", "skipintros", 1, path) != 0;
+    wsprintfA(path, "%srowe.ini", ModDir());
+    g_enabled = GetPrivateProfileIntA("rowe", "skipintros", 1, path) != 0;
 
     if ((DWORD)GetModuleHandleA(nullptr) != 0x00400000) return;
     BYTE* site = (BYTE*)0x0042240F;

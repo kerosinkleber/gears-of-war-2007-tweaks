@@ -99,10 +99,11 @@ void FovInstall()
 
 float FovGet() { return g_fov; }
 
-void FovSet(float degrees)
+void FovSet(float degrees, bool save)
 {
     if (degrees > kFovMax) degrees = kFovMax;
     g_fov = degrees;
+    if (!save) return;
     char path[MAX_PATH], val[16];
     IniPath(path);
     wsprintfA(val, "%d", (int)(degrees + 0.5f));

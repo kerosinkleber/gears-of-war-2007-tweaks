@@ -8,6 +8,8 @@
 // in the frame it is taken, read back over the next frames in strips (a staging copy polled
 // without waiting) and encoded on a worker thread.
 //
+// With showcase=1 the key takes the showcase series instead (see "showcase series" below).
+//
 // Tools: rowe_shot.req saves the frame at the screen's size, rowe_ui.req the same with the
 // settings menu drawn and rowe_scene.req the 3D scene before the HUD (from lens.cpp), all as
 // rowe_<kind>_<date>_<time>.png next to the DLL.
@@ -27,7 +29,7 @@ static char g_dir[MAX_PATH];  // as written in the ini (may hold %VARIABLES%); e
 static bool g_jpg = true;
 static int g_quality = 95;
 static bool g_full = true;
-
+static bool g_showcase;
 
 static void IniPath(char* out) { wsprintfA(out, "%srowe.ini", ModDir()); }
 
@@ -53,6 +55,7 @@ void ScreenshotInit()
     if (g_quality > 100) g_quality = 100;
     GetPrivateProfileStringA("rowe", "screenshotsize", "full", val, sizeof(val), path);
     g_full = lstrcmpiA(val, "screen") != 0 && lstrcmpiA(val, "window") != 0;
+    g_showcase = GetPrivateProfileIntA("rowe", "showcase", 0, path) != 0;
 }
 
 bool ScreenshotJpg() { return g_jpg; }
@@ -65,6 +68,16 @@ void ScreenshotSetJpg(bool jpg)
     char path[MAX_PATH];
     IniPath(path);
     WritePrivateProfileStringA("rowe", "screenshotformat", jpg ? "jpg" : "png", path);
+}
+
+bool ScreenshotShowcase() { return g_showcase; }
+
+void ScreenshotSetShowcase(bool on)
+{
+    g_showcase = on;
+    char path[MAX_PATH];
+    IniPath(path);
+    WritePrivateProfileStringA("rowe", "showcase", on ? "1" : "0", path);
 }
 
 void ScreenshotSetFull(bool full)
@@ -444,6 +457,86 @@ void ScreenshotRequestTo(const char* path)
 // Tools (`usershot` command): takes a screenshot as the key does.
 void ScreenshotRequestUser() { s_userRequest = true; }
 
+// ---- showcase series ---------------------------------------------------------------------------
+// With showcase=1 the screenshot key takes a series instead of one shot: no lens, Panini,
+// stereographic, fisheye and fisheye full circle at FOV 75, 90 and 159 (15 shots), at the
+// screen's size with the stats window in them, named ROWE_showcase_<time>_fov<fov>_<lens>.
+// Each setting gets kShowcaseSettle frames to take effect, and a shot waits until the previous
+// one is written. The next shot's settings are applied on the frame after a shot (as in ROWE for
+// Fallout New Vegas, where the stats window is drawn into the copy later in the frame; here it is
+// drawn before, which this keeps safe either way). The FOV and lens are set without saving, and
+// the user's come back afterwards; the key again stops the series. From the FNV port.
+
+static const float kShowcaseFov[] = {75.f, 90.f, 159.f};
+static const int kShowcaseLens[] = {kLensOff, kLensPanini, kLensStereographic, kLensFisheye, kLensFisheyeCircle};
+static const char* kShowcaseLensName[] = {"nolens", "panini", "stereographic", "fisheye", "fisheyecircle"};
+static const int kShowcaseLenses = 5, kShowcaseShots = 3 * kShowcaseLenses, kShowcaseSettle = 20;
+static int s_showcaseShot = -1;  // the next shot of the running series (kShowcaseShots: all taken), -1 = none
+static int s_showcaseWait;       // frames left before the next shot
+static bool s_showcaseNext;      // a shot was taken last frame: apply the next one's settings now
+static char s_showcaseStamp[32];
+static float s_userFov;
+static int s_userLens;
+
+static void ShowcaseApply(int shot)
+{
+    FovSet(kShowcaseFov[shot / kShowcaseLenses], false);
+    LensSetMode(kShowcaseLens[shot % kShowcaseLenses], false);
+    s_showcaseWait = kShowcaseSettle;
+}
+
+static void ShowcaseEnd(const char* how)
+{
+    FovSet(s_userFov, false);
+    LensSetMode(s_userLens, false);
+    OverlayForceStats(false);
+    Log("showcase: %s after %d of %d shots", how, s_showcaseShot, kShowcaseShots);
+    s_showcaseShot = -1;
+}
+
+static void ShowcaseStart()
+{
+    s_userFov = FovGet();
+    s_userLens = LensGetMode();
+    OverlayForceStats(true);
+    TimeStamp(s_showcaseStamp);
+    s_showcaseShot = 0;
+    s_showcaseNext = false;
+    ShowcaseApply(0);
+    Log("showcase: a series of %d shots", kShowcaseShots);
+}
+
+static void ShowcaseFrame(IDXGISwapChain* swap)
+{
+    if (s_showcaseShot < 0) return;
+    if (s_showcaseShot >= kShowcaseShots) {  // the last one was taken last frame
+        ShowcaseEnd("done");
+        return;
+    }
+    if (s_showcaseNext) {
+        s_showcaseNext = false;
+        ShowcaseApply(s_showcaseShot);
+        return;
+    }
+    if (s_showcaseWait > 0) { --s_showcaseWait; return; }
+    if (s_busy) return;  // the previous shot is still being written
+    ID3D10Device* dev = nullptr;
+    ID3D10Texture2D* src = nullptr;
+    if (FAILED(swap->GetDevice(__uuidof(ID3D10Device), (void**)&dev)) || !dev) return;
+    if (SUCCEEDED(SwapGetRealBuffer(swap, &src)) && src) {
+        char dir[MAX_PATH], path[MAX_PATH];
+        Folder(dir);
+        _snprintf(path, MAX_PATH - 1, "%sROWE_showcase_%s_fov%03d_%s.%s", dir, s_showcaseStamp,
+                  (int)kShowcaseFov[s_showcaseShot / kShowcaseLenses], kShowcaseLensName[s_showcaseShot % kShowcaseLenses],
+                  g_jpg ? "jpg" : "png");
+        path[MAX_PATH - 1] = 0;
+        Start(dev, src, path, g_jpg);
+        src->Release();
+        if (++s_showcaseShot < kShowcaseShots) s_showcaseNext = true;
+    }
+    dev->Release();
+}
+
 void ScreenshotFrame(IDXGISwapChain* swap, bool focused)
 {
     static bool prev;
@@ -456,6 +549,12 @@ void ScreenshotFrame(IDXGISwapChain* swap, bool focused)
     if (Requested("rowe_shot.req", counter)) wantTool = true;
 
     ReadStrips();
+    if (wantUser && (s_showcaseShot >= 0 || g_showcase)) {  // the showcase series instead of one shot
+        wantUser = false;
+        if (s_showcaseShot >= 0) ShowcaseEnd("stopped");
+        else ShowcaseStart();
+    }
+    ShowcaseFrame(swap);
     bool wantPath = s_pathPending && !s_busy;
     if (!wantUser && !(wantTool && !s_busy) && !wantPath) return;
 

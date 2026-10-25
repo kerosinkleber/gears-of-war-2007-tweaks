@@ -91,7 +91,7 @@ static void IniSetInt(const std::string& file, const char* section, const char* 
 struct ModSettings {
     int fov, aimFov, lens, mouseTrap, quality;
     float supersample;
-    bool shoulderLeft, skipIntros, jpg, full, borderless, stats;
+    bool shoulderLeft, skipIntros, jpg, full, borderless, stats, showcase;
     char key[16], menuKey[16], dir[MAX_PATH];
 } g_mod;
 
@@ -116,6 +116,7 @@ static void LoadMod()
     lstrcpynA(g_mod.menuKey, IniGet(g_modIni, s, "menukey", "F8").c_str(), sizeof(g_mod.menuKey));
     g_mod.borderless = IniInt(g_modIni, s, "borderless", 0) != 0;
     g_mod.stats = IniInt(g_modIni, s, "stats", 0) != 0;
+    g_mod.showcase = IniInt(g_modIni, s, "showcase", 0) != 0;
     lstrcpynA(g_mod.dir, IniGet(g_modIni, s, "screenshotdir", "").c_str(), sizeof(g_mod.dir));
 }
 
@@ -138,6 +139,7 @@ static void SaveMod()
     IniSet(g_modIni, s, "menukey", g_mod.menuKey);
     IniSetInt(g_modIni, s, "borderless", g_mod.borderless ? 1 : 0);
     IniSetInt(g_modIni, s, "stats", g_mod.stats ? 1 : 0);
+    IniSetInt(g_modIni, s, "showcase", g_mod.showcase ? 1 : 0);
     IniSet(g_modIni, s, "screenshotdir", g_mod.dir);
 }
 
@@ -779,6 +781,9 @@ static std::vector<Row> BuildRows()
                 }},
                 {"CANCEL", nullptr}});
         }});
+        rows.push_back({"SCREENSHOT SERIES", OnOff(g_mod.showcase), "SHOWCASE",
+                        "The screenshot key takes 15 shots: 5 lenses at FOV 75, 90 and 159, with the stats window.",
+                        ch([](int) { g_mod.showcase = !g_mod.showcase; }), nullptr});
         rows.push_back({"STATS WINDOW", OnOff(g_mod.stats), "STATS", "Lens, supersampling and frame rate in a corner of the game. Drag it in the F8 menu.",
                         ch([](int) { g_mod.stats = !g_mod.stats; }), nullptr});
         rows.push_back({"SETTINGS MENU KEY", Upper(g_mod.menuKey), "MENU KEY", "Enter, then press the key that opens the settings menu in game.", nullptr, []() {

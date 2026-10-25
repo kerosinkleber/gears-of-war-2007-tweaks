@@ -237,9 +237,10 @@ float LensRenderFov(float lensFov)
 
 int LensGetMode() { return g_mode; }
 
-void LensSetMode(int mode)
+void LensSetMode(int mode, bool save)
 {
     g_mode = mode;
+    if (!save) return;
     char path[MAX_PATH], val[8];
     wsprintfA(path, "%srowe.ini", ModDir());
     wsprintfA(val, "%d", mode);

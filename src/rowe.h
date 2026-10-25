@@ -119,7 +119,7 @@ float LensEffectiveFov();            // lens FOV actually in use (0 when not war
 bool LensStats(float* shownFov, float* renderFov);  // last gameplay frame: shown (0 = not warped), rendered
 bool LensGameplayActive();           // the gameplay camera updated within the last few frames
 int LensGetMode();
-void LensSetMode(int mode);  // saves to rowe.ini
+void LensSetMode(int mode, bool save = true);  // saves to rowe.ini (unless save is false)
 
 // overlay.cpp: the F8 settings menu (also polls the F9 screenshot and Tab shoulder keys).
 void OverlayFrame(IDXGISwapChain* swap);  // from Present, after the supersampling resolve
@@ -129,6 +129,7 @@ void OverlaySetWindow(HWND window);       // from Present: subclasses the game w
 bool OverlayBlocksInput();                // the menu is open: the game gets no mouse input
 void OverlayMouseDI(int dx, int dy, int wheel, int buttonEdge);  // dinput.cpp: the game's mouse reads
 void OverlayStatsInto(ID3D10Texture2D* tex);  // screenshot.cpp: the stats window into a full-size shot
+void OverlayForceStats(bool on);              // screenshot.cpp: the stats window on (showcase), not saved
 
 // dinput.cpp: the game's DirectInput mouse, for the settings menu.
 void DInputInstall();  // the exe's DirectInput8Create import
@@ -144,6 +145,8 @@ void ScreenshotSetJpg(bool jpg);     // saves to rowe.ini
 bool ScreenshotFull();
 void ScreenshotSetFull(bool full);   // saves to rowe.ini
 const char* ScreenshotKeyName();
+bool ScreenshotShowcase();
+void ScreenshotSetShowcase(bool on);  // saves to rowe.ini
 void ScreenshotRequestUser();    // tools: a screenshot as the key takes it
 void ScreenshotRequestTo(const char* path);  // the next frame, screen size, JPEG
 
@@ -154,7 +157,7 @@ static const float kFovMax = 159.f;  // highest FOV the mod sets or hands to the
 void FovInit();
 void FovInstall();  // detours the engine's FOV function; call once the engine is loaded
 float FovGet();
-void FovSet(float degrees);  // saves to rowe.ini
+void FovSet(float degrees, bool save = true);  // saves to rowe.ini (unless save is false)
 // Aiming FOV: 0 = the game's (40), otherwise kAimFovMin..kAimFovMax. Scopes keep their zoom.
 static const float kAimFovMin = 30.f, kAimFovMax = 120.f;  // also capped at the normal FOV
 float FovGetAim();

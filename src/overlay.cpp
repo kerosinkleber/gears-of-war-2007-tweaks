@@ -209,7 +209,7 @@ static void LayoutScreen(float bw, float bh)
 // ---- settings menu --------------------------------------------------------------------------
 
 enum { kRowFov, kRowAimFov, kRowLens, kRowSupersample, kRowBorderless, kRowShoulder, kRowMouseTrap, kRowShotFormat,
-       kRowShotSize, kRowStats, kRowIntros, kRowCount };
+       kRowShotSize, kRowShowcase, kRowStats, kRowIntros, kRowCount };
 static const float kSupersampleSteps[] = {1.f, 2.f, 2.25f, 3.f, 4.f, 5.f, 6.f, 8.f, 9.f, 10.f};
 static const int kSupersampleStepCount = sizeof(kSupersampleSteps) / sizeof(kSupersampleSteps[0]);
 static const DWORD kSupersampleApplyDelay = 600;  // ms after the last change, so cycling is cheap
@@ -223,6 +223,7 @@ static DWORD g_ssChangeTime;
 static float g_valueLeft[kRowCount];  // design x where each entry's "<" starts (for mouse clicks)
 
 static bool g_stats;
+static volatile bool g_statsForced;  // shown for the showcase series, whatever g_stats says
 static float g_statsX = -1, g_statsY = -1;  // fractions of the free space; -1: top right
 
 // "OFF" or e.g. "2.25X".
@@ -319,6 +320,12 @@ static void FillRow(int row, Row& r)
         else lstrcpyA(r.desc, "Full: the supersampled size the game renders at. Screen: your screen's.");
         break;
     }
+    case kRowShowcase:
+        r.label = "SCREENSHOT SERIES";
+        r.title = "SHOWCASE";
+        lstrcpyA(r.value, ScreenshotShowcase() ? "ON" : "OFF");
+        wsprintfA(r.desc, "%s takes 15 shots: 5 lenses at FOV 75, 90 and 159, with the stats window. Again: stop.", ScreenshotKeyName());
+        break;
     case kRowStats:
         r.label = "STATS WINDOW";
         r.title = "STATS";
@@ -455,7 +462,8 @@ static void BuildStats(float bw, float bh, float u, bool screen)
     lstrcpyA(lines[0][0], "LENS");
     lstrcpyA(lines[0][1], kLensNames[mode]);
     lstrcpyA(lines[1][0], "FOV");
-    if (mode == kLensOff || FovGet() <= 0) lstrcpyA(lines[1][1], "-");
+    if (FovGet() <= 0) lstrcpyA(lines[1][1], "GAME DEFAULT");
+    else if (mode == kLensOff) sprintf(lines[1][1], "%.0f\xB0", FovGet());
     else if (!LensStats(&shown, &rendered)) lstrcpyA(lines[1][1], "NOT IN GAMEPLAY");
     else if (shown <= 0) sprintf(lines[1][1], "%.0f\xB0 STRAIGHT", rendered);
     else sprintf(lines[1][1], "%.0f\xB0, RENDERED %.0f\xB0", shown, rendered);
@@ -687,6 +695,7 @@ static void ChangeRow(int row, int dir, bool big, DWORD now)
     case kRowMouseTrap: MouseTrapSetMode((MouseTrapGetMode() + kMouseTrapModeCount + dir) % kMouseTrapModeCount); break;
     case kRowShotFormat: ScreenshotSetJpg(!ScreenshotJpg()); break;
     case kRowShotSize: ScreenshotSetFull(!ScreenshotFull()); break;
+    case kRowShowcase: ScreenshotSetShowcase(!ScreenshotShowcase()); break;
     case kRowStats: g_stats = !g_stats; SaveStats(); break;
     case kRowIntros: IntrosSetSkipped(!IntrosSkipped()); break;
     }
@@ -1039,9 +1048,11 @@ static void DrawQuads(ID3D10RenderTargetView* rtv, float w, float h)
 
 // From screenshot.cpp, before a full-size shot of the supersampled frame: the stats window goes
 // into that frame too (scaled up with it).
+void OverlayForceStats(bool on) { g_statsForced = on; }
+
 void OverlayStatsInto(ID3D10Texture2D* tex)
 {
-    if (!g_stats || !g_dev || g_failed || g_bufH <= 0) return;
+    if (!(g_stats || g_statsForced) || !g_dev || g_failed || g_bufH <= 0) return;
     D3D10_TEXTURE2D_DESC td;
     tex->GetDesc(&td);
     ID3D10RenderTargetView* rtv = nullptr;
@@ -1112,8 +1123,9 @@ void OverlayFrame(IDXGISwapChain* swap)
     Update();
     bool focused = !g_testMode && GameHasFocus();
     ShoulderUpdate(focused);
-    bool ready = !g_failed && (g_open || g_stats) && Prepare(swap);
-    if (ready && g_stats) {  // before the screenshot key's shot, so it is in it
+    bool stats = g_stats || g_statsForced;
+    bool ready = !g_failed && (g_open || stats) && Prepare(swap);
+    if (ready && stats) {  // before the screenshot key's shot, so it is in it
         g_quadCount = 0;
         BuildStats(g_bufW, g_bufH, fminf(g_bufW / 1280.f, g_bufH / 720.f), true);
         DrawQuads(g_rtv, g_bufW, g_bufH);
@@ -1122,7 +1134,7 @@ void OverlayFrame(IDXGISwapChain* swap)
     if (ready && g_open) {
         g_quadCount = 0;
         BuildUI(g_bufW, g_bufH);
-        if (g_stats) BuildStats(g_bufW, g_bufH, g_u, true);  // again on top, to be dragged
+        if (stats) BuildStats(g_bufW, g_bufH, g_u, true);  // again on top, to be dragged
         if (g_cursorShown) BuildCursor();
         DrawQuads(g_rtv, g_bufW, g_bufH);
     }

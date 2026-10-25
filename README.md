@@ -91,6 +91,7 @@ Settings are saved to `rowe.ini` next to the DLL the first time one is changed:
 | `screenshotdir` | Folder for screenshots, created if missing. `%VARIABLES%` are expanded (e.g. `%USERPROFILE%\Pictures\Gears`); a relative path starts at the `Binaries` folder. Empty: the `Binaries` folder. | empty |
 | `screenshotformat` | `jpg` (small and quick to write) or `png` (lossless). | `jpg` |
 | `screenshotquality` | JPEG quality, 1–100. | `95` |
+| `showcase` | `1`: the screenshot key takes a series of 15 shots instead of one: no lens, Panini, stereographic, fisheye and fisheye full circle at FOV 75, 90 and 159, at the screen's size with the stats window in each, named `ROWE_showcase_<date>_<time>_fov<fov>_<lens>`. Each setting gets 20 frames to take effect; your FOV and lens come back afterwards (they are not saved in between). The key again stops the series. Also in the F8 menu and the launcher (*Screenshot series*). | `0` |
 | `screenshotsize` | `full`: the size the game renders at (with supersampling, e.g. 7240×4072 at 8×); `screen`: the screen's size. | `full` |
 | `background` | Developer tool, see below. Leave at `0`. | `0` |
 

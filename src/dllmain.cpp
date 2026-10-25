@@ -109,6 +109,7 @@ BOOL WINAPI DllMain(HINSTANCE inst, DWORD reason, LPVOID)
         LensInit();
         SupersampleInit();
         MouseTrapInit();
+        ScreenshotInit();
         BackgroundInit();
         BackgroundInstall();
         TextCaptureInstall();

@@ -85,7 +85,7 @@ void SupersamplePresent(IDXGISwapChain* swap, ID3D10Texture2D* real);
 
 // lens.cpp: hooks the engine's scene render commands (scene done, HUD not drawn yet) and
 // warps the frame into the chosen lens projection.
-enum { kLensOff = 0, kLensAuto = 1, kLensPanini = 2, kLensStereographic = 3, kLensModeCount = 4 };
+enum { kLensOff = 0, kLensAuto = 1, kLensPanini = 2, kLensStereographic = 3, kLensFisheye = 4, kLensModeCount = 5 };
 void LensInit();
 void LensInstall();
 void LensOnPresent(IDXGISwapChain* swap);
@@ -100,10 +100,17 @@ void LensSetMode(int mode);  // saves to gowfov.ini
 void OverlayFrame(IDXGISwapChain* swap);  // from Present, after the supersampling resolve
 void OverlayLost();                       // before the swap chain's buffers are resized
 
-// screenshot.cpp: call before the overlay draws so captures show the clean game frame.
-void ScreenshotFrame(IDXGISwapChain* swap, bool keyPressed);
-// Captures the back buffer right after the 3D scene (before the HUD); request: gowfov_scene.req.
-void ScreenshotScene(IDXGISwapChain* swap);
+// screenshot.cpp: the screenshot key (JPEG/PNG, full supersampled or screen size, written in the
+// background) and the tools' captures.
+void ScreenshotInit();                                   // reads gowfov.ini
+void ScreenshotFrame(IDXGISwapChain* swap, bool focused);  // from Present, before the overlay draws
+void ScreenshotScene(IDXGISwapChain* swap);              // after the 3D scene: gowfov_scene.req
+bool ScreenshotJpg();
+void ScreenshotSetJpg(bool jpg);     // saves to gowfov.ini
+bool ScreenshotFull();
+void ScreenshotSetFull(bool full);   // saves to gowfov.ini
+const char* ScreenshotKeyName();
+void ScreenshotRequestUser();    // tools: a screenshot as the key takes it
 
 // fov.cpp
 // 0 means "game default" (no override); otherwise horizontal FOV in degrees, at most kFovMax.
@@ -113,3 +120,7 @@ void FovInit();
 void FovInstall();  // detours the engine's FOV function; call once the engine is loaded
 float FovGet();
 void FovSet(float degrees);  // saves to gowfov.ini
+// Aiming FOV: 0 = the game's (40), otherwise kAimFovMin..kAimFovMax. Scopes keep their zoom.
+static const float kAimFovMin = 30.f, kAimFovMax = 120.f;  // also capped at the normal FOV
+float FovGetAim();
+void FovSetAim(float degrees);  // saves to gowfov.ini

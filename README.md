@@ -2,13 +2,14 @@
 
 A mod for **Gears of War for Windows** (PC, 2007) that adds:
 
-- **FOV slider** (60–159°). Aiming keeps the game's own zoom.
-- **Lens correction** in the style of [flex-fov](https://github.com/shaunlebron/flex-fov): very wide FOVs without stretched edges (Panini or stereographic projection).
+- **FOV slider** (60–159°), and an **aim FOV** for how far aiming zooms in. Sniper scopes keep their zoom.
+- **Lens correction** in the style of [flex-fov](https://github.com/shaunlebron/flex-fov): very wide FOVs without stretched edges (Panini, stereographic or fisheye projection).
 - **Shoulder swap** on Tab, with a setting for the shoulder the camera starts on.
 - **Supersampling** up to 8× (renders at a higher resolution and averages it down). The HUD, menus and subtitles keep their normal size, and it can be changed while playing.
 - **Mouse trap**: keeps the cursor on the game's monitor, during gameplay only or in menus too, so it can't drift onto another screen.
 - **Intro skip**: no ESRB, Epic and Microsoft Game Studios videos at startup. Loading screens still play.
-- An in-game **settings menu** (F8) and **screenshots** (F9).
+- An in-game **settings menu** (F8).
+- **Screenshots** (F9 by default) as JPEG or PNG, at the full supersampled resolution or the screen's, to a folder you choose. They are written in the background, so the game doesn't stall.
 
 It is a single `d3d9.dll` that goes next to the game's executable. No game files are modified. Its own files keep the mod's original name, gowfov (`gowfov.ini`, `gowfov.log`).
 
@@ -19,7 +20,7 @@ It is a single `d3d9.dll` that goes next to the game's executable. No game files
   ```ini
   ALLOWD3D10=True
   ```
-  In DirectX 9 mode only the FOV setting, the start shoulder and the intro skip work. The settings menu, lens correction, supersampling, F9 screenshots and the Tab shoulder swap need DirectX 10.
+  In DirectX 9 mode only the FOV setting, the start shoulder and the intro skip work. The settings menu, lens correction, supersampling, screenshots and the Tab shoulder swap need DirectX 10.
 - No other mod that uses a `d3d9.dll` in the same folder.
 
 ## Installing
@@ -39,23 +40,29 @@ To uninstall, delete `d3d9.dll`, plus `gowfov.ini` and `gowfov.log` if they exis
 | Left / Right | Change it; hold for the FOV, Shift steps the FOV by 10 |
 | Home | FOV back to the game default |
 | Tab | Swap the camera to the other shoulder |
-| F9 | Screenshot (BMP in the `Binaries` folder) |
+| F9 | Screenshot (key, folder, format and size: see the `screenshot...` settings) |
 
 Settings are saved to `gowfov.ini` next to the DLL the first time one is changed:
 
 | Key | Values | Default |
 |---|---|---|
-| `fov` | `0` = game default, otherwise 60–159. This is the FOV of the normal camera (the game uses 80); wider camera modes get the same increase up to 159°, and aiming (≤ 50°) is left alone. | `0` |
-| `lens` | `0` off, `1` auto (rectilinear up to 90°, blending into Panini by 160°), `2` Panini, `3` stereographic | `1` |
+| `fov` | `0` = game default, otherwise 60–159. This is the FOV of the normal camera (the game uses 80); wider camera modes get the same increase up to 159°, and aiming is set by `aimfov`. | `0` |
+| `aimfov` | `0` = game default (40), otherwise 30–120 (at most the `fov` value): the FOV while aiming. Camera modes zoomed in further than aiming (sniper scopes, 25° and below) keep their FOV. | `0` |
+| `lens` | `0` off, `1` auto (rectilinear up to 90°, blending into Panini by 160°), `2` Panini, `3` stereographic, `4` fisheye (equidistant: angles spread evenly from the centre; above about 140° the corners beyond the rendered view stay black, like a fisheye lens' vignette) | `1` |
 | `supersample` | Pixel-count multiplier, 1–9 (`4` = twice the width and height). Fullscreen only. | `1` |
 | `shoulder` | `right` or `left`: the shoulder the camera starts on | `right` |
 | `mousetrap` | `0` off (the game's own behaviour), `1` keep the cursor on the game's monitor during gameplay and free it in menus, pause, loading screens and cutscenes, `2` keep it there in menus too. Only while the game is in front; switching to another program frees the cursor. | `0` |
 | `skipintros` | `1` skip the intro videos, `0` play them (applies at the next start) | `1` |
+| `screenshotkey` | Screenshot key: `F1`–`F24`, `A`–`Z`, `0`–`9`, `Num0`–`Num9`, `Home`, `End`, `Insert`, `Delete`, `PageUp`, `PageDown`, `Pause`, `ScrollLock`, `PrintScreen`, or a virtual key code such as `0x78`. Avoid F8 (settings menu) and keys the game uses. | `F9` |
+| `screenshotdir` | Folder for screenshots, created if missing. `%VARIABLES%` are expanded (e.g. `%USERPROFILE%\Pictures\Gears`); a relative path starts at the `Binaries` folder. Empty: the `Binaries` folder. | empty |
+| `screenshotformat` | `jpg` (small and quick to write) or `png` (lossless). | `jpg` |
+| `screenshotquality` | JPEG quality, 1–100. | `95` |
+| `screenshotsize` | `full`: the size the game renders at (with supersampling, e.g. 7240×4072 at 8×); `screen`: the screen's size. | `full` |
 | `background` | Developer tool, see below. Leave at `0`. | `0` |
 
 Notes:
 
-- The FOV is capped at 159°: the game renders one view, so the lens can't go much wider anyway (about 160° with Panini, 147° with stereographic, where a higher setting is capped at 147°). Near the cap, camera modes that are normally wider (such as the roadie run) can't widen any further.
+- The FOV is capped at 159°: the game renders one view, so the lens can't go much wider anyway (about 160° with Panini, 147° with stereographic, where a higher setting is capped at 147°; the fisheye goes to 160° with black corners). Near the cap, camera modes that are normally wider (such as the roadie run) can't widen any further.
 - Supersampling is demanding: 8× renders eight times as many pixels. Lower it if the frame rate drops.
 
 ## How it works
@@ -83,7 +90,7 @@ The game imports `d3d9.dll` even when it renders with DirectX 10, so a proxy DLL
 | `src/supersample.cpp`, `src/downscale.hlsl` | Supersampling |
 | `src/overlay.cpp`, `src/overlay.hlsl` | F8 settings menu |
 | `src/intros.cpp` | Intro skip |
-| `src/screenshot.cpp` | F9 screenshots |
+| `src/screenshot.cpp` | Screenshots (GPU copy, read back over a few frames, JPEG/PNG encoding on a worker thread) |
 | `src/crashlog.cpp` | Writes the crash address and stack to `gowfov.log` |
 | `src/background.cpp`, `src/gamecmd.cpp`, `src/textcapture.cpp`, `src/fovtrace.cpp` | Developer tooling (see below) |
 | `test/harness.cpp` | Loads the DLL outside the game and renders the settings menu |
@@ -121,8 +128,8 @@ These exist to diagnose and test the mod without a person at the keyboard. Norma
 
   | File | Effect |
   |---|---|
-  | `gowfov_shot.req` | Screenshot |
-  | `gowfov_scene.req` | Screenshot of the 3D scene before the HUD |
+  | `gowfov_shot.req` | Screenshot at the screen's size (`gowfov_shot_<date>_<time>.png`) |
+  | `gowfov_scene.req` | Screenshot of the 3D scene before the HUD (`gowfov_scene_<date>_<time>.png`) |
   | `gowfov_reload.req` | Re-read `gowfov.ini` |
   | `gowfov_fovtrace.req` | Record 8 seconds of per-frame camera, FOV and lens data to `gowfov_fovtrace.csv` |
 

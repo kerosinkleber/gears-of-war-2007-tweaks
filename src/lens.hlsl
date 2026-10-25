@@ -8,7 +8,7 @@ cbuffer Lens : register(b0)
     float tanHalfRender;  // tan(half of the engine's horizontal render FOV)
     float aspect;         // width / height
     float blend;          // mode 1: 0 = rectilinear, 1 = Panini
-    int mode;             // 1 = auto (rectilinear -> Panini), 2 = Panini, 3 = stereographic
+    int mode;             // 1 = auto (rectilinear -> Panini), 2 = Panini, 3 = stereographic, 4 = fisheye
     float3 pad;
 };
 
@@ -55,11 +55,21 @@ float3 RayStereographic(float2 s)
     return float3(p / r * sin(theta), cos(theta));
 }
 
+float3 RayFisheye(float2 s)
+{
+    // Equidistant: theta = r. Corners past what was rendered are left black.
+    float2 p = s * halfFov;
+    float r = length(p);
+    if (r < 1e-6) return float3(0, 0, 1);
+    return float3(p / r * sin(r), cos(r));
+}
+
 float4 PSMain(VSOut i) : SV_Target
 {
     float2 s = float2(i.uv.x * 2 - 1, (1 - i.uv.y * 2) / aspect);
     float3 ray;
-    if (mode == 3) ray = RayStereographic(s);
+    if (mode == 4) ray = RayFisheye(s);
+    else if (mode == 3) ray = RayStereographic(s);
     else if (mode == 2) ray = RayPanini(s);
     else ray = normalize(lerp(RayRectilinear(s), RayPanini(s), blend));
 

@@ -60,6 +60,17 @@ static V3 RayStereographic(float sx, float sy, float half)
     return {px / r * sinf(th), py / r * sinf(th), cosf(th)};
 }
 
+// Fisheye (equidistant, r = theta): the angle from the centre grows evenly with the distance on
+// screen. Up to 160 degrees across (one rendered view's limit); the corners then look past what
+// was rendered and stay black like a fisheye lens' vignette.
+static V3 RayFisheye(float sx, float sy, float half)
+{
+    float px = sx * half, py = sy * half;
+    float r = sqrtf(px * px + py * py);
+    if (r < 1e-6f) return {0, 0, 1};
+    return {px / r * sinf(r), py / r * sinf(r), cosf(r)};
+}
+
 // Flex-fov style ramp: rectilinear up to 90 degrees, full Panini from 160.
 static float AutoBlend(float fovDeg)
 {
@@ -72,6 +83,7 @@ static float AutoBlend(float fovDeg)
 static V3 Ray(int mode, float sx, float sy, float half, float blend)
 {
     if (mode == kLensStereographic) return RayStereographic(sx, sy, half);
+    if (mode == kLensFisheye) return RayFisheye(sx, sy, half);
     if (mode == kLensPanini) return RayPanini(sx, sy, half);
     V3 a = RayRectilinear(sx, sy, half), b = RayPanini(sx, sy, half);
     return Norm({a.x + (b.x - a.x) * blend, a.y + (b.y - a.y) * blend, a.z + (b.z - a.z) * blend});
@@ -115,6 +127,19 @@ static void EnsureTable(int mode, float aspect)
         float t = CoverageTan(mode, i * kTableStep, aspect);
         if (t < prev) t = prev;  // keep it monotonic so it can be inverted
         g_table[i] = prev = t;
+    }
+    if (mode == kLensFisheye) {
+        // The fisheye's full coverage grows without bound before 160 (its corners look past 90
+        // degrees). From where it reaches 90% of the render limit it is replaced by a straight
+        // ramp to exactly the limit at 160: the table stays invertible (the warp maps each
+        // rendered FOV back to a lens FOV, also mid-blend), the screen's edges stay covered, and
+        // only the corners beyond the rendered view are left black.
+        float maxTan = tanf(kMaxRenderFov * kPi / 360.f);
+        int end = (int)(kMaxRenderFov / kTableStep);
+        int i0 = 0;
+        while (i0 + 1 < end && g_table[i0 + 1] <= 0.9f * maxTan) ++i0;
+        for (int i = i0 + 1; i <= end; ++i) g_table[i] = g_table[i0] + (maxTan - g_table[i0]) * (i - i0) / (float)(end - i0);
+        for (int i = end + 1; i < kTableSize; ++i) g_table[i] = 1e9f;
     }
     g_tableMode = mode;
     g_tableAspect = aspect;
@@ -168,8 +193,8 @@ float LensRenderFov(float lensFov)
     AcquireSRWLockExclusive(&g_tableLock);
     EnsureTable(mode, g_aspect);
     float tanR = TableCoverage(lensFov);
-    // Shrink the lens FOV to what the engine can cover within the render limit.
     if (tanR > maxTan) {
+        // Shrink the lens FOV to what the engine can cover within the render limit.
         lensFov = TableLens(maxTan);
         tanR = maxTan;
     }
@@ -178,6 +203,7 @@ float LensRenderFov(float lensFov)
     g_renderTan = tanR;
     return atanf(tanR) * 360.f / kPi;
 }
+
 
 int LensGetMode() { return g_mode; }
 
@@ -501,7 +527,8 @@ void LensInit()
 {
     char path[MAX_PATH];
     wsprintfA(path, "%sgowfov.ini", ModDir());
-    g_mode = GetPrivateProfileIntA("gowfov", "lens", kLensAuto, path);
+    int mode = GetPrivateProfileIntA("gowfov", "lens", kLensAuto, path);
+    g_mode = mode >= 0 && mode < kLensModeCount ? mode : kLensAuto;
 }
 
 // Replaces the Execute slots of both scene command vtables (checked against the originals).
@@ -553,6 +580,7 @@ void LensOnPresent(IDXGISwapChain* swap)
             FovInit();
             LensInit();
             MouseTrapInit();
+            ScreenshotInit();
             Log("settings reloaded: lens=%d", (int)g_mode);
         }
     }

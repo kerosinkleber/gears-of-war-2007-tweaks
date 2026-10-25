@@ -32,7 +32,7 @@ cl /nologo /O2 /MT /EHsc /W3 /D_CRT_SECURE_NO_WARNINGS /LD /I"%OUT%" /Fo"%OUT%\\
   "%SRC%\dllmain.cpp" "%SRC%\detour.cpp" "%SRC%\crashlog.cpp" "%SRC%\dx10hook.cpp" "%SRC%\fov.cpp" ^
   "%SRC%\lens.cpp" "%SRC%\shoulder.cpp" "%SRC%\supersample.cpp" "%SRC%\overlay.cpp" "%SRC%\intros.cpp" ^
   "%SRC%\screenshot.cpp" "%SRC%\mousetrap.cpp" "%SRC%\background.cpp" "%SRC%\gamecmd.cpp" "%SRC%\textcapture.cpp" "%SRC%\fovtrace.cpp" ^
-  /link /EXPORT:Direct3DCreate9 user32.lib kernel32.lib d3d10.lib || exit /b 1
+  /link /EXPORT:Direct3DCreate9 user32.lib kernel32.lib d3d10.lib ole32.lib oleaut32.lib windowscodecs.lib || exit /b 1
 
 cl /nologo /O2 /MT /EHsc /W3 /D_CRT_SECURE_NO_WARNINGS /Fo"%OUT%\\" /Fe"%OUT%\harness.exe" "%~dp0test\harness.cpp" ^
   /link user32.lib gdi32.lib d3d10.lib || exit /b 1

@@ -10,7 +10,6 @@
 static const int kMinFov = 60;
 static const int kMaxFov = (int)kFovMax;
 static const int kToggleKey = VK_F8;
-static const int kScreenshotKey = VK_F9;
 
 static bool g_open;
 static bool g_testMode;  // GOWFOV_TEST=1: always open, no focus check (used by the test harness)
@@ -72,7 +71,8 @@ static void Text(float x, float y, const char* s, float px, DWORD c)
 
 // ---- settings menu -------------------------------------------------------------------------
 
-enum { kRowFov, kRowLens, kRowSupersample, kRowShoulder, kRowMouseTrap, kRowIntros, kRowCount };
+enum { kRowFov, kRowAimFov, kRowLens, kRowSupersample, kRowShoulder, kRowMouseTrap, kRowShotFormat, kRowShotSize,
+       kRowIntros, kRowCount };
 static const float kSupersampleSteps[] = {1.f, 2.f, 2.25f, 3.f, 4.f, 5.f, 6.f, 8.f};
 static const int kSupersampleStepCount = sizeof(kSupersampleSteps) / sizeof(kSupersampleSteps[0]);
 static const DWORD kSupersampleApplyDelay = 600;  // ms after the last change, so cycling is cheap
@@ -101,7 +101,7 @@ static void BuildUI(int bh)
     Rect(px, py, pw, 2, 0xFFE0A030);
     Text(px + 4 * s, py + 4 * s, "GOWFOV SETTINGS", s * 0.75f, 0xFFE0A030);
 
-    static const char* kLensNames[kLensModeCount] = {"OFF", "AUTO", "PANINI", "STEREO"};
+    static const char* kLensNames[kLensModeCount] = {"OFF", "AUTO", "PANINI", "STEREO", "FISHEYE"};
     char value[64], note[64];
     float fov = FovGet();
     for (int row = 0; row < kRowCount; ++row) {
@@ -114,6 +114,12 @@ static void BuildUI(int bh)
             label = "FOV";
             if (fov > 0) wsprintfA(value, "%d", (int)(fov + 0.5f));
             else lstrcpyA(value, "DEFAULT");
+            break;
+        case kRowAimFov:
+            label = "AIM FOV";
+            if (FovGetAim() > 0) wsprintfA(value, "%d", (int)(FovGetAim() + 0.5f));
+            else lstrcpyA(value, "DEFAULT");
+            lstrcpyA(note, "GAME 40");
             break;
         case kRowLens: {
             label = "LENS";
@@ -143,6 +149,18 @@ static void BuildUI(int bh)
             lstrcpyA(note, kTrapNotes[MouseTrapGetMode()]);
             break;
         }
+        case kRowShotFormat:
+            label = "SCREENSHOT FORMAT";
+            lstrcpyA(value, ScreenshotJpg() ? "JPG" : "PNG");
+            wsprintfA(note, "KEY %s", ScreenshotKeyName());
+            break;
+        case kRowShotSize: {
+            label = "SCREENSHOT SIZE";
+            lstrcpyA(value, ScreenshotFull() ? "FULL" : "SCREEN");
+            UINT nw, nh, vw, vh;
+            if (ScreenshotFull() && SupersampleGetSizes(&nw, &nh, &vw, &vh)) wsprintfA(note, "%uX%u", vw, vh);
+            break;
+        }
         case kRowIntros:
             label = "INTRO VIDEOS";
             lstrcpyA(value, IntrosSkipped() ? "SKIP" : "PLAY");
@@ -162,7 +180,7 @@ static void BuildUI(int bh)
             Rect(tx, ty, tw * t, s * 0.7f, 0xFFE0A030);
         }
     }
-    Text(px + 4 * s, py + ph - 9 * s, "UP/DOWN SELECT  LEFT/RIGHT CHANGE  SHIFT X10  HOME FOV DEFAULT  F8 CLOSE",
+    Text(px + 4 * s, py + ph - 9 * s, "UP/DOWN SELECT  LEFT/RIGHT CHANGE  SHIFT X10  HOME DEFAULT  F8 CLOSE",
         s * 0.5f, 0xFF909090);
 }
 
@@ -215,25 +233,32 @@ static void Update()
 
     if (Pressed(VK_UP)) g_row = (g_row + kRowCount - 1) % kRowCount;
     if (Pressed(VK_DOWN)) g_row = (g_row + 1) % kRowCount;
-    if (Pressed(VK_HOME)) FovSet(0);
+    if (Pressed(VK_HOME)) {
+        if (g_row == kRowAimFov) FovSetAim(0);
+        else FovSet(0);
+    }
 
     bool leftEdge = Pressed(VK_LEFT), rightEdge = Pressed(VK_RIGHT);
     int dir = rightEdge ? 1 : leftEdge ? -1 : 0;
     switch (g_row) {
-    case kRowFov: {
-        // Held arrows repeat for the FOV.
+    case kRowFov:
+    case kRowAimFov: {
+        // Held arrows repeat for the FOVs.
         static DWORD lastStep;
         bool left = (GetAsyncKeyState(VK_LEFT) & 0x8000) != 0;
         bool right = (GetAsyncKeyState(VK_RIGHT) & 0x8000) != 0;
         if ((left || right) && (dir != 0 || now - lastStep > 60)) {
             lastStep = now;
-            float cur = FovGet();
+            bool aim = g_row == kRowAimFov;
+            float cur = aim ? FovGetAim() : FovGet();
+            float lo = aim ? kAimFovMin : (float)kMinFov, hi = aim ? kAimFovMax : (float)kMaxFov;
             float step = (GetAsyncKeyState(VK_SHIFT) & 0x8000) ? 10.f : 1.f;
-            if (cur <= 0) cur = 80;
+            if (cur <= 0) cur = aim ? 40.f : 80.f;
             cur += right ? step : -step;
-            if (cur < kMinFov) cur = (float)kMinFov;
-            if (cur > kMaxFov) cur = (float)kMaxFov;
-            FovSet(cur);
+            if (cur < lo) cur = lo;
+            if (cur > hi) cur = hi;
+            if (aim) FovSetAim(cur);
+            else FovSet(cur);
         }
         break;
     }
@@ -248,6 +273,12 @@ static void Update()
         break;
     case kRowMouseTrap:
         if (dir) MouseTrapSetMode((MouseTrapGetMode() + kMouseTrapModeCount + dir) % kMouseTrapModeCount);
+        break;
+    case kRowShotFormat:
+        if (dir) ScreenshotSetJpg(!ScreenshotJpg());
+        break;
+    case kRowShotSize:
+        if (dir) ScreenshotSetFull(!ScreenshotFull());
         break;
     case kRowIntros:
         if (dir) IntrosSetSkipped(!IntrosSkipped());
@@ -358,7 +389,7 @@ void OverlayFrame(IDXGISwapChain* swap)
     }
     Update();
     ShoulderUpdate(!g_testMode && GameHasFocus());
-    ScreenshotFrame(swap, !g_testMode && GameHasFocus() && Pressed(kScreenshotKey));
+    ScreenshotFrame(swap, !g_testMode && GameHasFocus());
     if (!g_open || failed) return;
 
     ID3D10Device* dev = nullptr;

@@ -1,5 +1,7 @@
 # ROWE for Gears of War (2007)
 
+![ROWE for Gears of War (2007)](docs/rowe-title.png)
+
 *ROWE: Reinhold Oberstürcks wunderbare Erweiterungen.*
 
 A mod for **Gears of War for Windows** (PC, 2007) that adds:

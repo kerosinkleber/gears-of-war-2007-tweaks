@@ -27,22 +27,23 @@ fxc /nologo /T ps_4_0 /E PSMain /Vn g_lensPS /Fh "%OUT%\lens_ps.h" "%SRC%\lens.h
 fxc /nologo /T vs_4_0 /E VSMain /Vn g_downscaleVS /Fh "%OUT%\downscale_vs.h" "%SRC%\downscale.hlsl" >nul || exit /b 1
 fxc /nologo /T ps_4_0 /E PSMain /Vn g_downscalePS /Fh "%OUT%\downscale_ps.h" "%SRC%\downscale.hlsl" >nul || exit /b 1
 
+rem NDEBUG (release build) leaves out the libraries' asserts, and with them their source paths.
 rem /MT links the C runtime statically, so the DLL needs no Visual C++ redistributable. The F8 menu
 rem uses stb_truetype from third_party\imgui and the font from third_party\fonts.
-cl /nologo /O2 /MT /EHsc /W3 /D_CRT_SECURE_NO_WARNINGS /LD /I"%OUT%" /I"%~dp0third_party\imgui" /I"%~dp0third_party\fonts" /Fo"%OUT%\\" /Fe"%OUT%\d3d9.dll" ^
+cl /nologo /O2 /MT /EHsc /W3 /DNDEBUG /D_CRT_SECURE_NO_WARNINGS /LD /I"%OUT%" /I"%~dp0third_party\imgui" /I"%~dp0third_party\fonts" /Fo"%OUT%\\" /Fe"%OUT%\d3d9.dll" ^
   "%SRC%\dllmain.cpp" "%SRC%\detour.cpp" "%SRC%\crashlog.cpp" "%SRC%\dx10hook.cpp" "%SRC%\fov.cpp" ^
   "%SRC%\lens.cpp" "%SRC%\shoulder.cpp" "%SRC%\supersample.cpp" "%SRC%\overlay.cpp" "%SRC%\intros.cpp" ^
   "%SRC%\screenshot.cpp" "%SRC%\mousetrap.cpp" "%SRC%\launch.cpp" "%SRC%\background.cpp" "%SRC%\gamecmd.cpp" "%SRC%\textcapture.cpp" "%SRC%\fovtrace.cpp" "%SRC%\borderless.cpp" "%SRC%\dinput.cpp" ^
   /link /EXPORT:Direct3DCreate9 user32.lib gdi32.lib kernel32.lib d3d10.lib ole32.lib oleaut32.lib windowscodecs.lib || exit /b 1
 
-cl /nologo /O2 /MT /EHsc /W3 /D_CRT_SECURE_NO_WARNINGS /Fo"%OUT%\\" /Fe"%OUT%\harness.exe" "%~dp0test\harness.cpp" ^
+cl /nologo /O2 /MT /EHsc /W3 /DNDEBUG /D_CRT_SECURE_NO_WARNINGS /Fo"%OUT%\\" /Fe"%OUT%\harness.exe" "%~dp0test\harness.cpp" ^
   /link user32.lib gdi32.lib d3d10.lib || exit /b 1
 echo Built %OUT%\d3d9.dll
 
 rem The launcher (settings, save slots, continue / new campaign), Dear ImGui on Direct3D 9.
 set "IMGUI=%~dp0third_party\imgui"
 if not exist "%OUT%\launcher" mkdir "%OUT%\launcher"
-cl /nologo /O2 /MT /EHsc /W3 /std:c++17 /D_CRT_SECURE_NO_WARNINGS /DIMGUI_IMPL_WIN32_DISABLE_GAMEPAD /I"%IMGUI%" /I"%~dp0third_party\fonts" ^
+cl /nologo /O2 /MT /EHsc /W3 /std:c++17 /DNDEBUG /D_CRT_SECURE_NO_WARNINGS /DIMGUI_IMPL_WIN32_DISABLE_GAMEPAD /I"%IMGUI%" /I"%~dp0third_party\fonts" ^
   /Fo"%OUT%\launcher\\" /Fe"%OUT%\rowe_launcher.exe" "%SRC%\launcher\launcher.cpp" ^
   "%IMGUI%\imgui.cpp" "%IMGUI%\imgui_draw.cpp" "%IMGUI%\imgui_tables.cpp" "%IMGUI%\imgui_widgets.cpp" ^
   "%IMGUI%\backends\imgui_impl_dx9.cpp" "%IMGUI%\backends\imgui_impl_win32.cpp" ^

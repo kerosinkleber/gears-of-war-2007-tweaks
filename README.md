@@ -26,9 +26,9 @@ It is a single `d3d9.dll` that goes next to the game's executable. No game files
 
 ## Installing
 
-1. Download `d3d9.dll` from the [releases](https://github.com/kerosinkleber/gears-of-war-2007-tweaks/releases), or build it yourself (see below).
-2. Copy it into the game's `Binaries` folder, next to `WarGame-G4WLive.exe`.
-3. Start the game as usual through `Startup.exe`, or through the launcher (below).
+1. Download `d3d9.dll`, and if you want the [launcher](#launcher) also `gowfov_launcher.exe`, from the [releases](https://github.com/kerosinkleber/gears-of-war-2007-tweaks/releases), or build them yourself (see below).
+2. Copy them into the game's `Binaries` folder, next to `WarGame-G4WLive.exe` and `Startup.exe`. The launcher only works from that folder.
+3. Start the game as usual through `Startup.exe`, or through `gowfov_launcher.exe`. For a desktop shortcut to the launcher, right-click `gowfov_launcher.exe` → *Send to* → *Desktop (create shortcut)*.
 
 To uninstall, delete `d3d9.dll`, plus `gowfov.ini` and `gowfov.log` if they exist (and `gowfov_launcher.exe` and the `gowfov_saves` folder if you used the launcher).
 

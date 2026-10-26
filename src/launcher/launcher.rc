@@ -1,0 +1,37 @@
+// rowe_launcher.exe: file icon, manifest and version information (Properties, Details).
+#include <winver.h>
+#include <winuser.h>
+#include "../version.h"
+
+1 ICON "rowe.ico"
+CREATEPROCESS_MANIFEST_RESOURCE_ID RT_MANIFEST "launcher.manifest"
+
+VS_VERSION_INFO VERSIONINFO
+ FILEVERSION ROWE_VERSION_BIN
+ PRODUCTVERSION ROWE_VERSION_BIN
+ FILEFLAGSMASK VS_FFI_FILEFLAGSMASK
+ FILEFLAGS 0
+ FILEOS VOS_NT_WINDOWS32
+ FILETYPE VFT_APP
+ FILESUBTYPE VFT2_UNKNOWN
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "040904b0"
+        BEGIN
+            VALUE "CompanyName", ROWE_AUTHOR
+            VALUE "FileDescription", "ROWE for Gears of War (2007) launcher"
+            VALUE "FileVersion", ROWE_VERSION_STR
+            VALUE "InternalName", "rowe_launcher"
+            VALUE "LegalCopyright", ROWE_COPYRIGHT
+            VALUE "OriginalFilename", "rowe_launcher.exe"
+            VALUE "ProductName", ROWE_PRODUCT
+            VALUE "ProductVersion", ROWE_PRODUCT_VERSION_STR
+            VALUE "Comments", ROWE_URL
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x409, 1200
+    END
+END

@@ -5,6 +5,8 @@ cbuffer Downscale : register(b0)
 {
     float2 scale;    // source pixels per destination pixel (per axis)
     float2 srcMax;   // source size - 1
+    float pointSample;  // 1: one source pixel (the middle of the span) instead of the average
+    float3 pad;
 };
 
 Texture2D Src : register(t0);
@@ -22,6 +24,8 @@ float4 PSMain(float4 pos : SV_Position) : SV_Target
 {
     // Destination pixel x covers source span [x * scale, (x + 1) * scale).
     float2 p0 = (pos.xy - 0.5) * scale;
+    // The compare mode's left half: one sample per pixel, as a game rendered at this size shows.
+    if (pointSample > 0) return Src.Load(int3(min((int2)floor(p0 + scale * 0.5), (int2)srcMax), 0));
     float2 p1 = p0 + scale;
     int2 i0 = (int2)floor(p0);
     int2 i1 = (int2)ceil(p1) - 1;

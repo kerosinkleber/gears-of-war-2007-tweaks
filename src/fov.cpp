@@ -20,6 +20,7 @@ static const float kPi = 3.14159265f;
 
 typedef float (__stdcall* AdjustFn)(float fov, void* pawn);
 static AdjustFn g_orig;
+static volatile float g_lastCappedFov;  // the last camera mode FOV that Remap took to its cap
 
 static float SmoothStep(float t)
 {
@@ -66,6 +67,7 @@ static float __stdcall HookAdjust(float fov, void* pawn)
     static int logged;
     float r = g_orig(fov, pawn);  // non-null: the hook only exists if the detour installed
     float lensFov = Remap(r);
+    if (lensFov >= kFovMax - 0.01f) g_lastCappedFov = r;
     float out = LensRenderFov(lensFov);
     FovTraceAdd('c', fov, r, lensFov, out, pawn);
     if (logged < 12 && out != r) {
@@ -73,6 +75,28 @@ static float __stdcall HookAdjust(float fov, void* pawn)
         Log("AdjustFOV in=%.2f orig=%.2f out=%.2f slider=%.0f", fov, r, out, g_fov);
     }
     return out;
+}
+
+// The comparison's left view (compare.cpp): the FOV the game itself would use in this frame, from
+// the FOV the engine renders with now (after this hook and the engine's blend between camera
+// modes): first the lens' wider render FOV back to the lens FOV, then Remap undone. Remap never
+// decreases, so a bisection finds the game's FOV. At Remap's cap (kFovMax) every wider camera
+// mode looks the same, so there the camera mode's own FOV the hook saw last is used.
+float FovGameFov(float renderFov)
+{
+    float target = LensFovForRender(renderFov);
+    if (g_fov <= 0 && g_aimFov <= 0) return target;
+    if (target >= kFovMax - 0.05f) {
+        if (g_lastCappedFov > 0) return g_lastCappedFov;
+        target = kFovMax;
+    }
+    float lo = 1.f, hi = 170.f;
+    for (int i = 0; i < 40; ++i) {
+        float mid = (lo + hi) / 2;
+        if (Remap(mid) < target) lo = mid;
+        else hi = mid;
+    }
+    return (lo + hi) / 2;
 }
 
 static void IniPath(char* out)

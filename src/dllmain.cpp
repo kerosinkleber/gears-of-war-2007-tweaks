@@ -112,6 +112,7 @@ BOOL WINAPI DllMain(HINSTANCE inst, DWORD reason, LPVOID)
         SupersampleInit();
         MouseTrapInit();
         BorderlessInit();
+        CompareInit();
         ScreenshotInit();
         LaunchInit();
         BackgroundInit();
@@ -125,6 +126,7 @@ BOOL WINAPI DllMain(HINSTANCE inst, DWORD reason, LPVOID)
         SupersampleInstall();
         BorderlessInstall();
         DInputInstall();
+        CompareInstall();
     }
     return TRUE;
 }

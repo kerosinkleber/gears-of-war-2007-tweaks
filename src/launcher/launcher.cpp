@@ -91,7 +91,7 @@ static void IniSetInt(const std::string& file, const char* section, const char* 
 struct ModSettings {
     int fov, aimFov, lens, mouseTrap, quality;
     float supersample;
-    bool shoulderLeft, skipIntros, jpg, full, borderless, stats, showcase;
+    bool shoulderLeft, skipIntros, jpg, full, borderless, stats, showcase, compare;
     char key[16], menuKey[16], dir[MAX_PATH];
 } g_mod;
 
@@ -117,6 +117,7 @@ static void LoadMod()
     g_mod.borderless = IniInt(g_modIni, s, "borderless", 0) != 0;
     g_mod.stats = IniInt(g_modIni, s, "stats", 0) != 0;
     g_mod.showcase = IniInt(g_modIni, s, "showcase", 0) != 0;
+    g_mod.compare = IniInt(g_modIni, s, "compare", 0) != 0;
     lstrcpynA(g_mod.dir, IniGet(g_modIni, s, "screenshotdir", "").c_str(), sizeof(g_mod.dir));
 }
 
@@ -140,6 +141,7 @@ static void SaveMod()
     IniSetInt(g_modIni, s, "borderless", g_mod.borderless ? 1 : 0);
     IniSetInt(g_modIni, s, "stats", g_mod.stats ? 1 : 0);
     IniSetInt(g_modIni, s, "showcase", g_mod.showcase ? 1 : 0);
+    IniSetInt(g_modIni, s, "compare", g_mod.compare ? 1 : 0);
     IniSet(g_modIni, s, "screenshotdir", g_mod.dir);
 }
 
@@ -738,6 +740,9 @@ static std::vector<Row> BuildRows()
             if (i >= kSupersampleStepCount) i = kSupersampleStepCount - 1;
             g_mod.supersample = kSupersampleSteps[i];
         }), nullptr});
+        rows.push_back({"COMPARE", g_mod.compare ? "SPLIT" : "OFF", "COMPARE",
+                        "In gameplay: the game as it is on the left, with ROWE's FOV, lens and supersampling on the right.",
+                        ch([](int) { g_mod.compare = !g_mod.compare; }), nullptr});
         rows.push_back({"START SHOULDER", g_mod.shoulderLeft ? "LEFT" : "RIGHT", "SHOULDER", "The shoulder the camera starts on. Tab swaps it in game.",
                         ch([](int) { g_mod.shoulderLeft = !g_mod.shoulderLeft; }), nullptr});
         static const char* kTrap[] = {"OFF", "GAMEPLAY", "ALWAYS"};

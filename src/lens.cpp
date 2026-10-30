@@ -15,6 +15,7 @@
 #include <windows.h>
 #include <d3d10.h>
 #include <math.h>
+#include <string.h>
 #include "rowe.h"
 #include "lens_vs.h"
 #include "lens_ps.h"
@@ -235,6 +236,20 @@ float LensRenderFov(float lensFov)
 }
 
 
+// The lens FOV that a render FOV covers (the inverse of LensRenderFov; the render FOV itself
+// where the lens leaves the picture alone).
+float LensFovForRender(float renderFov)
+{
+    int mode = g_mode;
+    if (mode == kLensOff || renderFov <= 0) return renderFov;
+    AcquireSRWLockExclusive(&g_tableLock);
+    EnsureTable(mode, g_aspect);
+    float lensFov = TableLens(tanf(renderFov * kPi / 360.f));
+    ReleaseSRWLockExclusive(&g_tableLock);
+    if (mode == kLensAuto && lensFov <= 90.f) return renderFov;  // Auto is straight up to 90
+    return lensFov;
+}
+
 int LensGetMode() { return g_mode; }
 
 void LensSetMode(int mode, bool save)
@@ -253,7 +268,7 @@ bool LensGameplayActive() { return g_presentCount - g_fovFrame <= 5; }
 
 // ---- warp rendering -----------------------------------------------------------------------
 
-struct LensCB { float halfFov, tanHalfRender, aspect, blend; int mode; float circle, pad[2]; };
+struct LensCB { float halfFov, tanHalfRender, aspect, blend; int mode; float circle, pad[2]; float src[4]; };
 
 // For the stats window: the last gameplay frame's lens (what it shows across the width, 0 when
 // not warped) and the FOV it was rendered with, in degrees.
@@ -400,8 +415,15 @@ static float ReadMiss(int reason, const float* m)
     return 0;
 }
 
+// The first view's rectangle in back buffer pixels (FSceneView X, Y, SizeX, SizeY at +0x1C), read
+// with its projection. Only used in compare mode, where the frame has two views and only the first
+// (the right one, ROWE's) is warped.
+static float g_viewRect[4];
+static bool g_viewRectValid;
+
 static float SceneRenderTan(BYTE* renderer, float aspect)
 {
+    g_viewRectValid = false;
     if (!renderer) return 0;
     if (g_viewsOffset < 0) {
         if (IsBadReadPtr(renderer, 0x400)) return 0;
@@ -424,6 +446,10 @@ static float SceneRenderTan(BYTE* renderer, float aspect)
     BYTE* data = *(BYTE**)(renderer + g_viewsOffset);
     if (!data || IsBadReadPtr(data + g_matrixOffset, 64)) return ReadMiss(2, nullptr);
     const float* m = (const float*)(data + g_matrixOffset);
+    if (CompareActive() && !IsBadReadPtr(data + 0x1C, 16)) {
+        memcpy(g_viewRect, data + 0x1C, 16);
+        g_viewRectValid = g_viewRect[2] > 0 && g_viewRect[3] > 0;
+    }
     return LooksLikeProjection(m, aspect) ? 1.f / m[0] : ReadMiss(3, m);
 }
 
@@ -497,7 +523,17 @@ static void Warp(IDXGISwapChain* swap, float actualTan)
 
     LensCB* cb = nullptr;
     if (FAILED(g_cb->Map(D3D10_MAP_WRITE_DISCARD, 0, (void**)&cb))) return;
-    cb->aspect = (float)g_copyDesc.Width / (float)g_copyDesc.Height;
+    // The area warped: the whole frame, or in compare mode the right view's rectangle only (its
+    // part of the copy is what the shader samples).
+    float rx = 0, ry = 0, rw = (float)g_copyDesc.Width, rh = (float)g_copyDesc.Height;
+    if (CompareActive() && g_viewRectValid) {
+        rx = g_viewRect[0]; ry = g_viewRect[1]; rw = g_viewRect[2]; rh = g_viewRect[3];
+    }
+    cb->src[0] = rx / g_copyDesc.Width;
+    cb->src[1] = ry / g_copyDesc.Height;
+    cb->src[2] = rw / g_copyDesc.Width;
+    cb->src[3] = rh / g_copyDesc.Height;
+    cb->aspect = rw / rh;
     bool circle = mode == kLensFisheyeCircle;
     cb->halfFov = circle ? CircleHalf(lensFov, cb->aspect) : lensFov * kPi / 360.f;
     cb->circle = circle ? CircleTheta(cb->aspect) : 0.f;
@@ -507,7 +543,7 @@ static void Warp(IDXGISwapChain* swap, float actualTan)
     g_cb->Unmap();
 
     g_stateBlock->Capture();  // the engine's pipeline state, restored after our draw
-    D3D10_VIEWPORT vp = {0, 0, g_copyDesc.Width, g_copyDesc.Height, 0.f, 1.f};
+    D3D10_VIEWPORT vp = {(INT)rx, (INT)ry, (UINT)rw, (UINT)rh, 0.f, 1.f};
     float blendFactor[4] = {0, 0, 0, 0};
     g_dev->OMSetRenderTargets(1, &g_rtv, nullptr);
     g_dev->OMSetBlendState(g_blend, blendFactor, 0xFFFFFFFF);
@@ -611,7 +647,7 @@ void LensOnPresent(IDXGISwapChain* swap)
     g_swap = swap;
     DXGI_SWAP_CHAIN_DESC sd;
     if (SUCCEEDED(swap->GetDesc(&sd)) && sd.BufferDesc.Height)
-        g_aspect = (float)sd.BufferDesc.Width / (float)sd.BufferDesc.Height;
+        g_aspect = CompareActive() ? 16.f / 9.f : (float)sd.BufferDesc.Width / (float)sd.BufferDesc.Height;  // compare: 16:9 halves
     if (g_presentCount % 600 == 0) {
         static LARGE_INTEGER last, freq;
         LARGE_INTEGER now;

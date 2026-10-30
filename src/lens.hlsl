@@ -11,6 +11,7 @@ cbuffer Lens : register(b0)
     int mode;             // 1 = auto (rectilinear -> Panini), 2 = Panini, 3 = stereographic, 4/5 = fisheye
     float circle;         // mode 5: the circle's half-angle (radians); black beyond it
     float2 pad;
+    float4 src;           // the warped area in the frame (uv offset, uv size): all of it, or one view
 };
 
 Texture2D Scene : register(t0);
@@ -78,5 +79,5 @@ float4 PSMain(VSOut i) : SV_Target
     if (circle > 0 && length(s) * halfFov > circle) return float4(0, 0, 0, 1);  // outside the full circle
     float2 r = ray.xy / ray.z / float2(tanHalfRender, tanHalfRender / aspect);
     if (abs(r.x) > 1.001 || abs(r.y) > 1.001) return float4(0, 0, 0, 1);
-    return Scene.SampleLevel(Linear, float2(0.5 + 0.5 * r.x, 0.5 - 0.5 * r.y), 0);
+    return Scene.SampleLevel(Linear, src.xy + src.zw * float2(0.5 + 0.5 * r.x, 0.5 - 0.5 * r.y), 0);
 }

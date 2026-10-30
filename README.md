@@ -11,6 +11,7 @@ A mod for **Gears of War for Windows** (PC, 2007) that adds:
 - **Shoulder swap** on Tab, with a setting for the shoulder the camera starts on.
 - **Supersampling** up to 10× (renders at a higher resolution and averages it down), fullscreen or in a window. The HUD, menus and subtitles keep their normal size, and it can be changed while playing.
 - **Borderless window**: in window mode, no frame or title bar, centred on the monitor.
+- **Compare**: the screen split in two 16:9 pictures of the same moment, the game as it is on the left and with ROWE's FOV, lens and supersampling on the right, each labelled, also in screenshots.
 - **Mouse trap**: keeps the cursor on the game's monitor, during gameplay only or in menus too, so it can't drift onto another screen.
 - **Intro skip**: no ESRB, Epic and Microsoft Game Studios videos at startup. Loading screens still play.
 - An in-game **settings menu** (F8, or a key you choose), styled like the game's own menus, for the keyboard or the mouse.
@@ -82,6 +83,7 @@ Settings are saved to `rowe.ini` next to the DLL the first time one is changed:
 | `lens` | `0` off, `1` auto (rectilinear up to 90°, blending into Panini by 160°), `2` Panini, `3` stereographic, `4` fisheye (equidistant: angles spread evenly from the centre; above about 140° the corners beyond the rendered view stay black, like a fisheye lens' vignette), `5` fisheye full circle (the fisheye zoomed out so that at FOV 159 everything rendered shows, as a circle fitted to the screen's height with black around it; a lower FOV or aiming magnifies picture and circle together, so the circle grows past the screen's edges) | `1` |
 | `supersample` | Pixel-count multiplier, 1–10 (`4` = twice the width and height), fullscreen or windowed. The rendered size is capped at 8192 pixels per side (the DirectX 10 limit), at 2560×1440 reached at about 10×. | `1` |
 | `borderless` | `1`: when the game runs in a window, the window has no frame or title bar and is centred on its monitor (with black around it if it is smaller than the monitor). Fullscreen is unchanged. | `0` |
+| `compare` | `1`: during gameplay the screen shows two 16:9 pictures side by side, with black bars above and below: on the left the game with its own FOV and aim FOV, no lens and no supersampling; on the right with ROWE's settings. Labels in the bar above name each side's FOV (and on the right the lens and supersampling); a screenshot shows them too. Menus, the pause screen and cutscenes keep the single full picture. Also in the F8 menu and the launcher. | `0` |
 | `shoulder` | `right` or `left`: the shoulder the camera starts on | `right` |
 | `mousetrap` | `0` off (the game's own behaviour), `1` keep the cursor on the game's monitor during gameplay and free it in menus, pause, loading screens and cutscenes, `2` keep it there in menus too. Only while the game is in front; switching to another program frees the cursor. | `0` |
 | `skipintros` | `1` skip the intro videos, `0` play them (applies at the next start) | `1` |
@@ -99,6 +101,7 @@ Notes:
 
 - The FOV is capped at 159°: the game renders one view, so the lens can't go much wider anyway (about 160° with Panini, 147° with stereographic, where a higher setting is capped at 147°; the fisheye goes to 160° with black corners). Near the cap, camera modes that are normally wider (such as the roadie run) can't widen any further.
 - Supersampling is demanding: 10× renders ten times as many pixels, and the engine's own buffers grow with it. Lower it if the frame rate drops.
+- Compare renders the scene twice per frame (each at half the screen's width), so expect a lower frame rate. With supersampling, both halves are rendered at the large size (the engine can't render two views of different sizes in one frame) and the left half takes one sample per screen pixel instead of the average: its edges look as without supersampling, its textures can be slightly sharper.
 
 ## How it works
 
@@ -112,6 +115,7 @@ The game imports `d3d9.dll` even when it renders with DirectX 10, so a proxy DLL
 | Supersampling | The engine's viewport is resized to a larger "virtual" size. The real swap chain stays at the display size; the engine renders into a virtual-size texture, which is averaged down in linear light at Present (`downscale.hlsl`). The HUD, menus and subtitles lay out at the display size and are drawn under a scale transform. Menu mouse hit tests are kept in display pixels. |
 | Intro skip | The startup movie queue is filtered right after it is built. |
 | Settings menu | Drawn with its own D3D10 quads after the frame is finished, with Share Tech Mono rasterized by stb_truetype at the sizes it uses. The mouse comes from the game window's messages and, in gameplay (where the engine holds the mouse through DirectInput and Windows sends no messages), from the game's own DirectInput reads; while the menu is open the game reads an idle mouse and gets none of the menu's keys. |
+| Compare | The engine's frame loop builds one view per local player. After the first view (on the right), the player list briefly holds the player twice, so the engine builds a second view (on the left) with its own view state, as for split screen; its FOV is the game's own, found by inverting ROWE's FOV mapping. The HUD loop, which looks the views up by player index, runs over the doubled list too. The lens warp and the supersampling resolve then only touch the right view. |
 | Borderless window | The engine sizes, styles and places its window in its viewport's `Resize` (and restores the window's style and placement when its startup splash ends); those calls get no frame, no frame styles and a centred position. |
 
 | File | Contents |
@@ -124,6 +128,7 @@ The game imports `d3d9.dll` even when it renders with DirectX 10, so a proxy DLL
 | `src/shoulder.cpp` | Shoulder swap |
 | `src/mousetrap.cpp` | Mouse trap |
 | `src/borderless.cpp` | Borderless window |
+| `src/compare.cpp` | Compare (split screen) |
 | `src/dinput.cpp` | The game's DirectInput mouse, for the settings menu |
 | `src/keynames.h` | Key names, shared by the mod and the launcher |
 | `src/supersample.cpp`, `src/downscale.hlsl` | Supersampling |

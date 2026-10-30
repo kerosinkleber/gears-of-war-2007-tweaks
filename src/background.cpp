@@ -163,6 +163,8 @@ void BackgroundInit()
     char path[MAX_PATH];
     wsprintfA(path, "%srowe.ini", ModDir());
     g_enabled = GetPrivateProfileIntA("rowe", "background", 0, path) != 0;
+    // A crash ends the game without Windows' error window (which would come to the front).
+    if (g_enabled) SetErrorMode(GetErrorMode() | SEM_NOGPFAULTERRORBOX);
     HWND front = GetForegroundWindow();
     DWORD pid = 0;
     GetWindowThreadProcessId(front, &pid);

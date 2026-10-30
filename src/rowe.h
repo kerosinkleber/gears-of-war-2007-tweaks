@@ -18,6 +18,7 @@ const char* ModDir();            // folder of the DLL, with trailing backslash
 // detour.cpp: returns the trampoline (call it to run the original), or null if not installed.
 void* InstallDetour(DWORD targetVA, const BYTE* expected, int len, void* hook, const char* name);
 void* PatchExeImport(const char* dll, const char* name, void* hook);  // returns the original function
+void* PatchCall(DWORD site, DWORD expectedTarget, void* hook, const char* name);  // one call rel32; returns the original target
 
 void CrashLogInstall(HMODULE self);  // crashlog.cpp: logs access violations to rowe.log
 void IntrosInstall();                // intros.cpp: skips the startup intro videos
@@ -95,6 +96,18 @@ bool SupersampleInWindowedResize();  // inside the engine's viewport Resize, win
 bool SupersampleViewportWindowed();  // the viewport's last Resize was windowed
 void SupersampleResizeViewport();    // runs that Resize again (game thread, by a window message)
 
+// compare.cpp: rowe.ini compare=1 draws the game twice per frame, side by side: as the game shows
+// it (left) and with ROWE's picture settings (right).
+void CompareInit();     // reads rowe.ini
+void CompareInstall();  // the viewport draw's CalcSceneView call
+bool CompareActive();
+void CompareSet(bool on);  // saves to rowe.ini
+bool CompareSplitNow();    // the last frame was drawn split
+float CompareGameFov();    // the left view's FOV, last frame
+void CompareLayout(float vw, float vh, float* leftX, float* rightX, float* y, float* w, float* h);  // fractions
+bool CompareSecondView();  // the left (game) view is being built
+bool CompareLeftRect(float* rect);  // supersampling: the left view in the large frame (x, y, w, h), for the resolve
+
 // borderless.cpp: rowe.ini borderless=1 runs the game's window without a frame, centred on its
 // monitor (over a black backdrop if it is smaller). Only while the game runs in a window.
 void BorderlessInit();     // reads rowe.ini
@@ -115,6 +128,7 @@ void LensInstall();
 void LensOnPresent(IDXGISwapChain* swap);
 void LensOnResize();
 float LensRenderFov(float lensFov);  // FOV the engine must render for this lens FOV
+float LensFovForRender(float renderFov);  // the inverse: the lens FOV a render FOV covers
 float LensEffectiveFov();            // lens FOV actually in use (0 when not warping)
 bool LensStats(float* shownFov, float* renderFov);  // last gameplay frame: shown (0 = not warped), rendered
 bool LensGameplayActive();           // the gameplay camera updated within the last few frames
@@ -161,4 +175,5 @@ void FovSet(float degrees, bool save = true);  // saves to rowe.ini (unless save
 // Aiming FOV: 0 = the game's (40), otherwise kAimFovMin..kAimFovMax. Scopes keep their zoom.
 static const float kAimFovMin = 30.f, kAimFovMax = 120.f;  // also capped at the normal FOV
 float FovGetAim();
+float FovGameFov(float renderFov);  // the game's own FOV for the FOV the engine renders with now
 void FovSetAim(float degrees);  // saves to rowe.ini

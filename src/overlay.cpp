@@ -208,14 +208,14 @@ static void LayoutScreen(float bw, float bh)
 
 // ---- settings menu --------------------------------------------------------------------------
 
-enum { kRowFov, kRowAimFov, kRowLens, kRowSupersample, kRowBorderless, kRowShoulder, kRowMouseTrap, kRowShotFormat,
+enum { kRowFov, kRowAimFov, kRowLens, kRowSupersample, kRowBorderless, kRowCompare, kRowShoulder, kRowMouseTrap, kRowShotFormat,
        kRowShotSize, kRowShowcase, kRowStats, kRowIntros, kRowCount };
 static const float kSupersampleSteps[] = {1.f, 2.f, 2.25f, 3.f, 4.f, 5.f, 6.f, 8.f, 9.f, 10.f};
 static const int kSupersampleStepCount = sizeof(kSupersampleSteps) / sizeof(kSupersampleSteps[0]);
 static const DWORD kSupersampleApplyDelay = 600;  // ms after the last change, so cycling is cheap
 
 // Entry list geometry (design units).
-static const float kListX0 = 105, kListX1 = 745, kListY0 = 140, kRowH = 30, kRowGap = 4;
+static const float kListX0 = 105, kListX1 = 745, kListY0 = 140, kRowH = 27, kRowGap = 3;
 
 static int g_row;
 static float g_ssPending = -1.f;  // chosen but not yet applied
@@ -289,6 +289,12 @@ static void FillRow(int row, Row& r)
         lstrcpyA(r.value, BorderlessGet() ? "ON" : "OFF");
         lstrcpyA(r.desc, BorderlessWindowed() ? "In a window: no frame or title bar, centred on the monitor (black around it if smaller)."
                                               : "Applies when the game runs in a window (it runs fullscreen now).");
+        break;
+    case kRowCompare:
+        r.label = "COMPARE";
+        r.title = "COMPARE";
+        lstrcpyA(r.value, CompareActive() ? "SPLIT" : "OFF");
+        lstrcpyA(r.desc, "In gameplay: the game as it is on the left, with ROWE's FOV, lens and supersampling on the right.");
         break;
     case kRowShoulder:
         r.label = "START SHOULDER";
@@ -394,14 +400,14 @@ static void BuildUI(float bw, float bh)
         if (hot) Rect(x0, y, x1 - x0, kRowH, Argb(0.85f, 0.85f, 0.85f, 0.32f));
         HLine(x0, x1, y, Argb(1, 1, 1, hot ? 0.25f : 0.06f));
         DWORD text = Argb(1, 1, 1, hot ? 1.f : 0.72f);
-        Text(x0 + 14, y + 6, r.label, 16, text, 3);
-        Text(x1 - (hot ? 34 : 14), y + 6, r.value, 16, text, 2.5f, kRight);
+        Text(x0 + 14, y + 5, r.label, 16, text, 3);
+        Text(x1 - (hot ? 34 : 14), y + 5, r.value, 16, text, 2.5f, kRight);
         float vw = TextWidth(r.value, 16, 2.5f);
         g_valueLeft[i] = x1 - 34 - vw - 22;
         if (hot) {
             DWORD red = Argb(0.9f, 0.3f, 0.25f, 1);
-            Text(x1 - 34 - vw - 22, y + 5, "<", 17, red);
-            Text(x1 - 22, y + 5, ">", 17, red);
+            Text(x1 - 34 - vw - 22, y + 4, "<", 17, red);
+            Text(x1 - 22, y + 4, ">", 17, red);
         }
     }
 
@@ -482,6 +488,41 @@ static void BuildStats(float bw, float bh, float u, bool screen)
         float y = 26 + i * kStatsLine;
         Text(12, y, lines[i][0], 13, Argb(1, 1, 1, 0.65f), 2);
         Text(kStatsW - 12, y, lines[i][1], 13, Argb(1, 1, 1, 0.95f), 1, kRight);
+    }
+}
+
+// ---- compare labels -----------------------------------------------------------------------------
+
+// Compare mode: what each half shows, in the bars above the pictures (or over them when there is no
+// bar), and a dark line between them. u: back buffer pixels per design pixel.
+static void BuildCompareLabels(float bw, float bh, float u)
+{
+    float lx, rx, y, w, h;
+    CompareLayout(bw, bh, &lx, &rx, &y, &w, &h);
+    g_u = u;
+    g_ox = g_oy = 0;
+    g_line = fmaxf(1.f, floorf(u + 0.25f));
+    float top = y * bh / u, size = 16, line = 2;  // design units
+    // Divider: the pictures meet in the middle.
+    Rect((lx + w) * bw / u - line / 2, top, line, h * bh / u, Argb(0, 0, 0, 1));
+    char left[64], right[96], factor[16];
+    sprintf(left, "FOV %.0f", CompareGameFov());
+    float shown, rendered;
+    int mode = LensGetMode();
+    float fov = LensStats(&shown, &rendered) && shown > 0 ? shown : FovGet() > 0 ? FovGet() : CompareGameFov();
+    sprintf(right, "FOV %.0f", fov);
+    if (mode != kLensOff) sprintf(right + strlen(right), " \xB7 %s", kLensNames[mode]);
+    UINT nw, nh, vw, vh;
+    if (SupersampleGetSizes(&nw, &nh, &vw, &vh)) {
+        FormatFactor(factor, SupersampleSetting());
+        sprintf(right + strlen(right), " \xB7 SUPERSAMPLING %s", factor);
+    }
+    float ly = top >= size + 16 ? top - size - 10 : top + 10;  // in the bar, else over the picture
+    struct { float x; const char* name; const char* what; } labels[2] = {{lx * bw / u + 12, "GAME", left},
+                                                                       {rx * bw / u + 12, "ROWE", right}};
+    for (auto& l : labels) {
+        Text(l.x, ly, l.name, size, Argb(0.85f, 0.25f, 0.2f, 1), 4, kLeft, true);
+        Text(l.x + TextWidth(l.name, size, 4) + 14, ly, l.what, size, Argb(1, 1, 1, 0.9f), 2, kLeft, true);
     }
 }
 
@@ -691,6 +732,7 @@ static void ChangeRow(int row, int dir, bool big, DWORD now)
     case kRowLens: LensSetMode((LensGetMode() + kLensModeCount + dir) % kLensModeCount); break;
     case kRowSupersample: ChangeSupersample(dir, now); break;
     case kRowBorderless: BorderlessSet(!BorderlessGet()); break;
+    case kRowCompare: CompareSet(!CompareActive()); break;
     case kRowShoulder: ShoulderSetStartLeft(!ShoulderStartLeft()); break;
     case kRowMouseTrap: MouseTrapSetMode((MouseTrapGetMode() + kMouseTrapModeCount + dir) % kMouseTrapModeCount); break;
     case kRowShotFormat: ScreenshotSetJpg(!ScreenshotJpg()); break;
@@ -1052,14 +1094,15 @@ void OverlayForceStats(bool on) { g_statsForced = on; }
 
 void OverlayStatsInto(ID3D10Texture2D* tex)
 {
-    if (!(g_stats || g_statsForced) || !g_dev || g_failed || g_bufH <= 0) return;
+    if (!(g_stats || g_statsForced || CompareSplitNow()) || !g_dev || g_failed || g_bufH <= 0) return;
     D3D10_TEXTURE2D_DESC td;
     tex->GetDesc(&td);
     ID3D10RenderTargetView* rtv = nullptr;
     if (FAILED(g_dev->CreateRenderTargetView(tex, nullptr, &rtv))) return;
     float scale = fminf(g_bufW / 1280.f, g_bufH / 720.f) * td.Height / g_bufH;
     g_quadCount = 0;
-    BuildStats((float)td.Width, (float)td.Height, scale, false);
+    if (g_stats || g_statsForced) BuildStats((float)td.Width, (float)td.Height, scale, false);
+    if (CompareSplitNow()) BuildCompareLabels((float)td.Width, (float)td.Height, scale);
     DrawQuads(rtv, (float)td.Width, (float)td.Height);
     rtv->Release();
 }
@@ -1123,11 +1166,13 @@ void OverlayFrame(IDXGISwapChain* swap)
     Update();
     bool focused = !g_testMode && GameHasFocus();
     ShoulderUpdate(focused);
-    bool stats = g_stats || g_statsForced;
-    bool ready = !g_failed && (g_open || stats) && Prepare(swap);
-    if (ready && stats) {  // before the screenshot key's shot, so it is in it
+    bool stats = g_stats || g_statsForced, labels = CompareSplitNow();
+    bool ready = !g_failed && (g_open || stats || labels) && Prepare(swap);
+    if (ready && (stats || labels)) {  // before the screenshot key's shot, so they are in it
+        float scale = fminf(g_bufW / 1280.f, g_bufH / 720.f);
         g_quadCount = 0;
-        BuildStats(g_bufW, g_bufH, fminf(g_bufW / 1280.f, g_bufH / 720.f), true);
+        if (labels) BuildCompareLabels(g_bufW, g_bufH, scale);
+        if (stats) BuildStats(g_bufW, g_bufH, scale, true);
         DrawQuads(g_rtv, g_bufW, g_bufH);
     }
     ScreenshotFrame(swap, focused);

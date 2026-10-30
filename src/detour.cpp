@@ -58,3 +58,19 @@ void* InstallDetour(DWORD targetVA, const BYTE* expected, int len, void* hook, c
     Log("%s: hook installed at %08lx", name, targetVA);
     return tramp;
 }
+
+// Redirects one `call rel32` instruction; returns the original call target or null.
+void* PatchCall(DWORD site, DWORD expectedTarget, void* hook, const char* name)
+{
+    BYTE* p = (BYTE*)site;
+    if (IsBadReadPtr(p, 5) || p[0] != 0xE8 || site + 5 + *(int*)(p + 1) != expectedTarget) {
+        Log("%s: call site %08lx mismatch, not hooked", name, site);
+        return nullptr;
+    }
+    DWORD old;
+    VirtualProtect(p, 5, PAGE_EXECUTE_READWRITE, &old);
+    *(int*)(p + 1) = (int)((BYTE*)hook - (p + 5));
+    VirtualProtect(p, 5, old, &old);
+    FlushInstructionCache(GetCurrentProcess(), p, 5);
+    return (void*)expectedTarget;
+}

@@ -629,22 +629,6 @@ __declspec(naked) static void UiPushTransformThunk()
     }
 }
 
-// Redirects one `call rel32` instruction; returns the original call target or null.
-static void* PatchCall(DWORD site, DWORD expectedTarget, void* hook, const char* name)
-{
-    BYTE* p = (BYTE*)site;
-    if (IsBadReadPtr(p, 5) || p[0] != 0xE8 || site + 5 + *(int*)(p + 1) != expectedTarget) {
-        Log("%s: call site %08lx mismatch, not hooked", name, site);
-        return nullptr;
-    }
-    DWORD old;
-    VirtualProtect(p, 5, PAGE_EXECUTE_READWRITE, &old);
-    *(int*)(p + 1) = (int)((BYTE*)hook - (p + 5));
-    VirtualProtect(p, 5, old, &old);
-    FlushInstructionCache(GetCurrentProcess(), p, 5);
-    return (void*)expectedTarget;
-}
-
 // ---- install ---------------------------------------------------------------------------------
 
 // Installs the engine-side hooks (from DllMain). Each group is all-or-nothing where a partial
@@ -782,7 +766,7 @@ static bool CreateResolveResources()
     if (FAILED(g_dev->CreateVertexShader(g_downscaleVS, sizeof(g_downscaleVS), &g_vs))) return false;
     if (FAILED(g_dev->CreatePixelShader(g_downscalePS, sizeof(g_downscalePS), &g_ps))) return false;
     D3D10_BUFFER_DESC bd = {};
-    bd.ByteWidth = 16;
+    bd.ByteWidth = 32;
     bd.Usage = D3D10_USAGE_DYNAMIC;
     bd.BindFlags = D3D10_BIND_CONSTANT_BUFFER;
     bd.CPUAccessFlags = D3D10_CPU_ACCESS_WRITE;
@@ -829,6 +813,7 @@ static void Resolve(ID3D10Texture2D* real)
     cb[1] = (float)g_virtH / (float)rd.Height;
     cb[2] = (float)(g_virtW - 1);
     cb[3] = (float)(g_virtH - 1);
+    cb[4] = cb[5] = cb[6] = cb[7] = 0;
     g_cb->Unmap();
 
     g_stateBlock->Capture();
@@ -847,6 +832,23 @@ static void Resolve(ID3D10Texture2D* real)
     g_dev->PSSetConstantBuffers(0, 1, &g_cb);
     g_dev->PSSetShaderResources(0, 1, &g_virtSRV);
     g_dev->Draw(3, 0);
+    // Compare mode: the left (game) half gets one sample per pixel instead of the average, so it
+    // looks as without supersampling (the engine cannot render views of different sizes at once).
+    float left[4];
+    if (CompareLeftRect(left) && SUCCEEDED(g_cb->Map(D3D10_MAP_WRITE_DISCARD, 0, (void**)&cb))) {
+        cb[0] = (float)g_virtW / (float)rd.Width;
+        cb[1] = (float)g_virtH / (float)rd.Height;
+        cb[2] = (float)(g_virtW - 1);
+        cb[3] = (float)(g_virtH - 1);
+        cb[4] = 1.f;
+        cb[5] = cb[6] = cb[7] = 0;
+        g_cb->Unmap();
+        float sx = (float)rd.Width / g_virtW, sy = (float)rd.Height / g_virtH;
+        D3D10_VIEWPORT half = {(INT)(left[0] * sx + 0.5f), (INT)(left[1] * sy + 0.5f), (UINT)(left[2] * sx + 0.5f),
+                               (UINT)(left[3] * sy + 0.5f), 0.f, 1.f};
+        g_dev->RSSetViewports(1, &half);
+        g_dev->Draw(3, 0);
+    }
     ID3D10ShaderResourceView* nullSRV = nullptr;
     g_dev->PSSetShaderResources(0, 1, &nullSRV);
     g_stateBlock->Apply();
